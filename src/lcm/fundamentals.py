@@ -216,13 +216,6 @@ def fiscal_year_of(d: date, fye_month: int, fye_day: int) -> int:
     return d.year if (d.month, d.day) <= (fye_month, fye_day) else d.year + 1
 
 
-def last_completed_fy(end: date, fye_month: int, fye_day: int) -> int:
-    """At a 10-K date the year just ended is complete; at a 10-Q date it's the prior one."""
-    fy = fiscal_year_of(end, fye_month, fye_day)
-    is_year_end = xbrl._near(end, date(fy, fye_month, fye_day))
-    return fy if is_year_end else fy - 1
-
-
 @dataclass
 class MaturitySchedule:
     as_of: date | None
@@ -237,9 +230,12 @@ class MaturitySchedule:
 def maturity_schedule(cf: dict, end: date, fye_month: int, fye_day: int) -> MaturitySchedule:
     """Scheduled principal repayments by fiscal year, from the newest filing that tags them.
 
-    XBRL maturity buckets count from the last completed fiscal year:
-    "next twelve months" / "remainder of fiscal year" = completed FY + 1,
-    "year two" = completed FY + 2, ... "after year five" = completed FY + 6 and later.
+    Buckets count from the fiscal year that CONTAINS the schedule date (base):
+    - 10-K at year end: base = the year just ended; "next twelve months" = base + 1.
+    - 10-Q mid-year: base = the year in progress; "remainder of fiscal year" = base,
+      "next twelve months" = base + 1 (e.g. Bausch Health 10-Q p.23: remainder of
+      2026 = $15M, 2027 = $701M).
+    "year N" = base + N; "after year five" = base + 6 and later.
     """
     by_tag = {k: xbrl.facts_for(cf, t) for k, t in MATURITY_TAGS.items()}
     # Only schedules from the last year count; an older one (filer stopped tagging) is stale.
@@ -249,7 +245,7 @@ def maturity_schedule(cf: dict, end: date, fye_month: int, fye_day: int) -> Matu
     if not dates:
         return MaturitySchedule(as_of=None)
     as_of = dates[-1]
-    base = last_completed_fy(as_of, fye_month, fye_day)
+    base = fiscal_year_of(as_of, fye_month, fye_day)
     sched = MaturitySchedule(as_of=as_of)
     for key, facts in by_tag.items():
         f = xbrl.instant(facts, as_of)
@@ -258,7 +254,7 @@ def maturity_schedule(cf: dict, end: date, fye_month: int, fye_day: int) -> Matu
         if key == "after5":
             label = f"FY{base + 6}+"
         elif key == "remainder":
-            label = f"FY{base + 1}"
+            label = f"FY{base}"
         else:
             label = f"FY{base + key}"
         sched.buckets[label] = sched.buckets.get(label, 0.0) + f.val
@@ -268,15 +264,14 @@ def maturity_schedule(cf: dict, end: date, fye_month: int, fye_day: int) -> Matu
 
 
 def near_term_share(sched: MaturitySchedule, end: date, fye_month: int, fye_day: int) -> float:
-    """Share of scheduled principal due by the end of the NEXT fiscal year after the current one.
+    """Share of scheduled principal due in the rest of the current fiscal year plus the next two.
 
-    At a 10-K date that is the next ~24 months; at a 10-Q date it is the rest of
-    the current fiscal year plus the next full fiscal year.
+    At a 10-K date that is the next ~24 months; from a Q3 10-Q, about 27 months.
     """
     if not sched.buckets or sched.as_of is None:
         return math.nan
-    base = last_completed_fy(sched.as_of, fye_month, fye_day)
-    near = sum(sched.buckets.get(f"FY{base + k}", 0.0) for k in (1, 2))
+    base = fiscal_year_of(sched.as_of, fye_month, fye_day)
+    near = sum(sched.buckets.get(f"FY{base + k}", 0.0) for k in (0, 1, 2))
     return near / sched.total if sched.total > 0 else math.nan
 
 

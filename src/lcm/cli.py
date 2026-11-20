@@ -116,7 +116,7 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
         "ltm_interest_musd": "{:,.0f}".format, "debt_to_ebitda": "{:.2f}x".format,
         "ebitda_to_interest": "{:.2f}x".format, "near_term_pct": "{:.1f}%".format,
         "rank_leverage": "{:.0f}".format, "rank_coverage": "{:.0f}".format, "rank_near_term": "{:.0f}".format}))
-    print("near_term_pct = share of scheduled principal due by the end of the next fiscal year after the current one")
+    print("near_term_pct = share of scheduled principal due in the rest of this fiscal year plus the next two")
 
     print("\nSUPPLEMENTARY (not used in ranking): EBITDA excl. goodwill/intangible impairments and gains on business sales")
     print(table[["ticker", "ltm_impairments_musd", "ltm_gain_on_sale_musd", "ebitda_excl_one_offs_musd",

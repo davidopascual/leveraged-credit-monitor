@@ -59,8 +59,11 @@ Everything is cached in `data/raw/sec/`.
   itself when the newest filing is a 10-K).
 - **Interest (LTM):** interest expense; if a company only tags a net figure (net of interest
   income) it is used and labelled as such in the tag audit.
-- **Near-term maturities:** share of scheduled principal due by the end of the next fiscal
-  year after the current one.
+- **Near-term maturities:** share of scheduled principal due in the rest of the current
+  fiscal year plus the next two fiscal years (~24 months from a 10-K date, ~27 months from a
+  Q3 10-Q). XBRL maturity buckets are counted from the fiscal year that contains the
+  balance-sheet date (in a 10-Q, "next twelve months" is the year after the one in progress;
+  checked against Bausch Health's printed table, 10-Q p.23).
 - **Ranking:** rank 1 = most stretched on each of leverage (highest), coverage (lowest) and
   near-term maturities (highest); composite = average rank. Debt/EBITDA is shown as n/a
   when EBITDA <= 0 but that issuer ranks *first* (worst) on leverage.

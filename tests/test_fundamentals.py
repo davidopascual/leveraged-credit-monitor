@@ -147,14 +147,17 @@ def test_maturity_labels_from_10k_calendar_year():
     assert s.buckets == {"FY2026": 10, "FY2027": 20, "FY2031+": 70}
 
 
-def test_maturity_labels_from_10q_use_last_completed_year():
-    # 10-Q at 2026-09-30: remainder of 2026, then year two = 2027.
+def test_maturity_labels_from_10q_count_from_year_in_progress():
+    # Bausch Health 10-Q at 2026-09-30 (p.23): remainder of 2026 = 15, 2027 = 701,
+    # 2028 = 3,766, ..., thereafter (2032+) = 6,000.
     doc = cf({
-        f"{P}RemainderOfFiscalYear": [{"end": "2026-09-30", "val": 5}],
-        f"{P}InYearTwo": [{"end": "2026-09-30", "val": 15}],
+        f"{P}RemainderOfFiscalYear": [{"end": "2026-09-30", "val": 15}],
+        f"{P}InNextTwelveMonths": [{"end": "2026-09-30", "val": 701}],
+        f"{P}InYearTwo": [{"end": "2026-09-30", "val": 3766}],
+        f"{P}AfterYearFive": [{"end": "2026-09-30", "val": 6000}],
     })
     s = fm.maturity_schedule(doc, date(2026, 9, 30), 12, 31)
-    assert s.buckets == {"FY2026": 5, "FY2027": 15}
+    assert s.buckets == {"FY2026": 15, "FY2027": 701, "FY2028": 3766, "FY2032+": 6000}
 
 
 def test_maturity_labels_non_calendar_fiscal_year():
@@ -162,6 +165,18 @@ def test_maturity_labels_non_calendar_fiscal_year():
     doc = cf({f"{P}InNextTwelveMonths": [{"end": "2026-09-30", "val": 136}]})
     s = fm.maturity_schedule(doc, date(2026, 9, 30), 9, 30)
     assert s.buckets == {"FY2027": 136}
+
+
+def test_near_term_share_from_10q_includes_remainder_and_next_two_years():
+    doc = cf({
+        f"{P}RemainderOfFiscalYear": [{"end": "2026-09-30", "val": 15}],
+        f"{P}InNextTwelveMonths": [{"end": "2026-09-30", "val": 701}],
+        f"{P}InYearTwo": [{"end": "2026-09-30", "val": 3766}],
+        f"{P}InYearThree": [{"end": "2026-09-30", "val": 1667}],
+    })
+    s = fm.maturity_schedule(doc, date(2026, 9, 30), 12, 31)
+    expected = (15 + 701 + 3766) / (15 + 701 + 3766 + 1667)
+    assert fm.near_term_share(s, date(2026, 9, 30), 12, 31) == pytest.approx(expected)
 
 
 def test_near_term_share():
