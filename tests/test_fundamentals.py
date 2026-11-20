@@ -365,3 +365,33 @@ def test_debt_tag_order_prefers_net_carrying_over_gross_principal():
     })
     r = fm.resolve_long_term_debt(doc, date(2026, 9, 30))
     assert r.value == 13193 and r.tag == "DebtAndCapitalLeaseObligations"
+
+
+# ---- partial data must never be treated as zero -----------------------------
+
+def test_ytd_without_prior_periods_is_partial_missing_not_zero():
+    # Bausch Health pattern: 2026 YTD goodwill impairment tagged; FY2025 amount not tagged.
+    doc = cf({"GoodwillImpairmentLoss": [{"start": "2026-01-01", "end": "2026-09-30", "val": 1426e6}]})
+    r = fm.resolve_ltm(doc, "impairments", fm.IMPAIRMENT_TAGS, date(2026, 9, 30))
+    assert r.missing and r.partial and math.isnan(r.value)
+    assert "1,426" in r.detail
+
+
+def test_no_data_at_all_is_not_partial():
+    r = fm.resolve_ltm(cf({}), "impairments", fm.IMPAIRMENT_TAGS, date(2026, 9, 30))
+    assert r.missing and not r.partial
+
+
+def test_supplementary_ebitda_is_nan_when_an_adjustment_is_unknown():
+    assert math.isnan(fm.ebitda_excl_one_offs(2397, math.nan, 0))
+    assert fm.ebitda_excl_one_offs(2397, 1571, 0) == 3968
+
+
+def test_override_fills_missing_field_only():
+    from lcm.issuers import apply_overrides
+    fields = {"impairments": fm.Resolved("impairments", math.nan, None, partial=True),
+              "interest": fm.Resolved("interest", 5.0, "InterestExpense")}
+    apply_overrides(fields, {"impairments": {"value_musd": 1571, "source": "10-K p.F-6 + 10-Q p.2"}})
+    assert fields["impairments"].value == 1571e6 and fields["impairments"].tag == "manual (from filing)"
+    with pytest.raises(ValueError):
+        apply_overrides(fields, {"interest": {"value_musd": 1, "source": "x"}})

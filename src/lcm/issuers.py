@@ -60,6 +60,20 @@ def schedule_from_debt_note(rows: pd.DataFrame, as_of: date) -> fm.MaturitySched
     return sched
 
 
+def apply_overrides(fields: dict[str, fm.Resolved], overrides: dict) -> None:
+    """Fill a MISSING field with a value read from the printed filing, with its source.
+
+    Only for fields XBRL cannot supply; an override never replaces a value XBRL does give.
+    """
+    for name, ov in overrides.items():
+        r = fields.get(name)
+        if r is None:
+            raise ValueError(f"override for unknown field {name!r}")
+        if not r.missing:
+            raise ValueError(f"override for {name!r} but XBRL already supplies it ({r.tag})")
+        fields[name] = fm.Resolved(name, float(ov["value_musd"]) * 1e6, "manual (from filing)", ov["source"])
+
+
 def build_snapshot(
     issuer: dict, user_agent: str, cache_dir: Path, refresh: bool = False,
     debt_note_rows: pd.DataFrame | None = None,
@@ -80,6 +94,7 @@ def build_snapshot(
         "impairments": fm.resolve_ltm(cf, "impairments", fm.IMPAIRMENT_TAGS, end),
         "gain_on_business_sale": fm.resolve_ltm(cf, "gain_on_business_sale", fm.GAIN_ON_BUSINESS_SALE_TAGS, end),
     }
+    apply_overrides(fields, issuer.get("ltm_overrides", {}))
     debt = fm.total_debt(fields["long_term_debt"], fields["short_term_debt"])
     ebitda = fm.ebitda(fields["operating_income"].value, fields["d_and_a"].value)
     sched = fm.maturity_schedule(cf, end, fye_month, fye_day)
@@ -122,8 +137,9 @@ def metrics_row(s: Snapshot, capstructure_musd: float | None) -> dict[str, objec
     }
     # Supplementary, not used in ranking: EBITDA excluding impairments and gains on business sales.
     imp, gain = s.fields["impairments"], s.fields["gain_on_business_sale"]
-    imp_usd = 0.0 if imp.missing else imp.value
-    gain_usd = 0.0 if gain.missing else gain.value
+    # "None reported" counts as zero; PARTIAL data (item exists, LTM not computable) does not.
+    imp_usd = math.nan if imp.partial else (0.0 if imp.missing else imp.value)
+    gain_usd = math.nan if gain.partial else (0.0 if gain.missing else gain.value)
     adj = fm.ebitda_excl_one_offs(s.ebitda_usd, imp_usd, gain_usd)
     row["ltm_impairments_musd"] = imp_usd / m
     row["ltm_gain_on_sale_musd"] = gain_usd / m
@@ -137,7 +153,9 @@ def audit_rows(s: Snapshot) -> list[dict[str, object]]:
         {
             "ticker": s.ticker,
             "field": r.field,
-            "tag": r.tag or ("none reported (treated as 0)" if r.field in ("short_term_debt", "impairments", "gain_on_business_sale") else "MISSING"),
+            "tag": r.tag or ("MISSING (partial data)" if r.partial
+                             else "none reported (treated as 0)" if r.field in ("short_term_debt", "impairments", "gain_on_business_sale")
+                             else "MISSING"),
             "value_musd": r.value / 1e6,
             "detail": r.detail,
         }

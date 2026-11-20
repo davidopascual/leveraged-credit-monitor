@@ -38,6 +38,10 @@ issuers:
     name: Six Flags Entertainment
     cik: 1999001
     fye: "12-31"
+    ltm_overrides:
+      gain_on_business_sale:
+        value_musd: -41.027
+        source: "Loss on disposal group: 41,027K for 9M 2026 and '—' for 9M 2025 (10-Q 0001999001-26-000107 p.4); no such line in FY2025 10-K (0001999001-26-000048). LTM = 0 + 41.0 - 0 = 41.0M loss. XBRL has only the 2026 YTD."
   - ticker: HGV
     name: Hilton Grand Vacations
     cik: 1674168
@@ -53,3 +57,11 @@ issuers:
     caveats:
       - "LTM window (Oct 2025 - Sep 2026) includes the Mass Markets Fiber-to-the-Home business sold to AT&T until Feb 2, 2026; it was kept in continuing operations (10-Q p.14) and its EBITDA is not disclosed separately, so it cannot be removed. Leverage is therefore measured partly on earnings from a business Lumen no longer owns."
       - "Headline EBITDA includes the $569M net gain on the sale, booked in operating income (10-Q p.5). The supplementary column removes it."
+  - ticker: BHC
+    name: Bausch Health Companies
+    cik: 885590
+    fye: "12-31"
+    ltm_overrides:
+      impairments:
+        value_musd: 1571
+        source: "Goodwill impairments: FY2025 145 (10-K 0000885590-26-000023 p.F-6) + 9M 2026 1,426 - 9M 2025 '—' (10-Q 0000885590-26-000123 p.2). XBRL has only the 2026 YTD."

@@ -48,3 +48,21 @@ LUMN,Level 3 Financing Inc.,Second Lien notes (formerly secured) 3.875%-4.875%,u
 LUMN,Qwest Corporation,Senior notes 6.500%-7.750%,unsecured,3,1734,millions,2030,10-Q,0000018926-26-000073,24,Maturities 2030-2057 (earliest year entered); structurally senior at Qwest
 LUMN,Qwest Capital Funding Inc.,Senior notes 6.875%-7.750%,unsecured,3,166,millions,2028,10-Q,0000018926-26-000073,24,Maturities 2028-2031 (earliest year entered)
 LUMN,Lumen Technologies Inc.,Finance lease and other obligations,other,3,248,millions,,10-Q,0000018926-26-000073,24,Treated as a general unsecured claim (simplification)
+BHC,126NumberCo (1261229 B.C. Ltd.),2030 Term Loan B Facility,secured,1,2962,millions,2030,10-Q,0000885590-26-000123,16,First lien on 126NumberCo assets incl. B+L shares + pari 1L guarantee from BHC guarantors (p.18)
+BHC,Bausch + Lomb Corp.,B+L January 2031 Refinancing Term Facility,secured,1,2788,millions,2031,10-Q,0000885590-26-000123,16,Secured by B+L and its material subsidiaries' assets only (p.20)
+BHC,Bausch + Lomb Corp.,B+L 2030 Revolving Credit Facility (drawn),secured,1,100,millions,2030,10-Q,0000885590-26-000123,16,Secured by B+L assets only (p.20)
+BHC,Bausch Health Companies Inc.,4.875% Secured Notes due June 2028,secured,1,803,millions,2028,10-Q,0000885590-26-000123,16,Existing Senior Secured Notes; first lien pari passu; not guaranteed by 126NumberCo (p.21-22)
+BHC,Bausch Health Companies Inc.,11.00% First Lien Secured Notes due Sept 2028,secured,1,888,millions,2028,10-Q,0000885590-26-000123,16,Existing Senior Secured Notes; first lien; not guaranteed by 126NumberCo (p.21-22)
+BHC,Bausch Health Companies Inc.,14.00% Second Lien Secured Notes due Oct 2030,secured,2,352,millions,2030,10-Q,0000885590-26-000123,16,Second lien
+BHC,126NumberCo (1261229 B.C. Ltd.),10.00% Secured Notes due April 2032,secured,1,6000,millions,2032,10-Q,0000885590-26-000123,16,First lien on 126NumberCo assets incl. B+L shares + pari 1L guarantee from BHC guarantors (p.21)
+BHC,Bausch + Lomb Corp.,B+L 8.375% Secured Notes due Oct 2028,secured,1,1400,millions,2028,10-Q,0000885590-26-000123,16,Secured by B+L assets only
+BHC,Bausch + Lomb Corp.,B+L January 2031 Secured Notes,secured,1,765,millions,2031,10-Q,0000885590-26-000123,16,Secured by B+L assets only
+BHC,Bausch Health Companies Inc. / BHA,8.50% Senior Unsecured Notes due Jan 2027,unsecured,3,643,millions,2027,10-Q,0000885590-26-000123,16,Not guaranteed by 126NumberCo or 153NumberCo (p.70)
+BHC,Bausch Health Companies Inc. / BHA,7.00% Senior Unsecured Notes due Jan 2028,unsecured,3,171,millions,2028,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,5.00% Senior Unsecured Notes due Jan 2028,unsecured,3,433,millions,2028,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,6.25% Senior Unsecured Notes due Feb 2029,unsecured,3,821,millions,2029,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,5.00% Senior Unsecured Notes due Feb 2029,unsecured,3,452,millions,2029,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,7.25% Senior Unsecured Notes due May 2029,unsecured,3,336,millions,2029,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,5.25% Senior Unsecured Notes due Jan 2030,unsecured,3,779,millions,2030,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc. / BHA,5.25% Senior Unsecured Notes due Feb 2031,unsecured,3,463,millions,2031,10-Q,0000885590-26-000123,16,
+BHC,Bausch Health Companies Inc.,Other,other,3,12,millions,,10-Q,0000885590-26-000123,16,Treated as a general unsecured claim (simplification)

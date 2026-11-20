@@ -50,7 +50,7 @@ SHORT_TERM_DEBT_TAGS = [
     Candidate("ShortTermBankLoansAndNotesPayable"),
 ]
 # Supplementary only (shown, never used in the headline EBITDA or the ranking):
-# EBITDA + impairments - gains on business sales.
+# EBITDA + impairments - gains (or + losses) on sales/write-downs of businesses or disposal groups.
 IMPAIRMENT_TAGS = [
     Candidate("GoodwillAndIntangibleAssetImpairment"),
     Candidate("GoodwillImpairmentLoss", note="goodwill only"),
@@ -92,6 +92,7 @@ class Resolved:
     value: float            # USD; NaN if missing
     tag: str | None         # None if every candidate was missing
     detail: str = ""
+    partial: bool = False   # True: some data exists (e.g. current YTD) but not enough for the period
 
     @property
     def missing(self) -> bool:
@@ -155,11 +156,30 @@ def resolve_long_term_debt(cf: dict, end: date) -> Resolved:
 
 
 def resolve_ltm(cf: dict, name: str, candidates: list[Candidate], end: date) -> Resolved:
+    """First candidate tag that yields a complete LTM value.
+
+    If no tag gives a complete LTM but some tag HAS a value for a period ending at
+    `end` (e.g. year-to-date), the result is MISSING with partial=True. That is not
+    "none reported": the item exists, but prior-period facts needed for LTM are not
+    tagged, so it must not be treated as zero.
+    """
+    partial: list[str] = []
     for c in candidates:
-        r = xbrl.ltm(xbrl.facts_for(cf, c.tag), end)
+        facts = xbrl.facts_for(cf, c.tag)
+        r = xbrl.ltm(facts, end)
         if r is not None:
             note = f" ({c.note})" if c.note else ""
             return Resolved(name, c.sign * r.value, c.tag, f"{r.periods}{note}")
+        current = [f for f in facts if f.start is not None and f.end == end and f.val != 0]
+        if current:
+            f = max(current, key=lambda f: f.days)
+            partial.append(f"{c.tag} {f.start}..{f.end} = {c.sign * f.val / 1e6:,.0f}M")
+    if partial:
+        return Resolved(
+            name, math.nan, None,
+            "PARTIAL: " + "; ".join(partial) + " found, but prior-period facts are not tagged, so LTM is not computable",
+            partial=True,
+        )
     return Resolved(name, math.nan, None, f"no candidate tag gives an LTM value ending {end}")
 
 
@@ -177,7 +197,7 @@ def total_debt(long_term: Resolved, short_term: Resolved) -> float:
 
 def ebitda_excl_one_offs(ebitda_value: float, impairments: float, gains_on_sale: float) -> float:
     """Supplementary EBITDA: add back impairments, remove gains on sale of a business."""
-    if math.isnan(ebitda_value):
+    if math.isnan(ebitda_value) or math.isnan(impairments) or math.isnan(gains_on_sale):
         return math.nan
     return ebitda_value + impairments - gains_on_sale
 

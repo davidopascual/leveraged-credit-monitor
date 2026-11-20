@@ -139,7 +139,7 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     for r in rows:
         diff = r["debt_musd"] - r["debt_note_principal_musd"]
         print(f"  {r['ticker']}: XBRL {r['debt_musd']:,.0f} vs debt note {r['debt_note_principal_musd']:,.0f} "
-              f"(diff {diff:+,.0f}; unamortized discounts and issuance costs explain small gaps)")
+              f"(diff {diff:+,.0f}; carrying value = principal net of unamortized premiums, discounts and issuance costs)")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     table.to_csv(OUTPUT_DIR / "issuer_snapshot.csv", index=False)

@@ -68,8 +68,13 @@ Everything is cached in `data/raw/sec/`.
   near-term maturities (highest); composite = average rank. Debt/EBITDA is shown as n/a
   when EBITDA <= 0 but that issuer ranks *first* (worst) on leverage.
 - **Supplementary (not ranked):** EBITDA excluding goodwill/intangible impairments (added
-  back) and gains on the sale of a business (removed), shown next to the headline figure
-  because one-off items can distort GAAP operating income in either direction.
+  back) and gains/losses on sales or write-downs of a business or disposal group (removed),
+  shown next to the headline figure because one-off items can distort GAAP operating income
+  in either direction.
+- **Partial data is never zero:** if an item has a current year-to-date value but the
+  prior-period facts needed for LTM are not tagged, the field is MISSING (partial) and
+  anything depending on it is n/a. Where the printed filing supplies the missing periods,
+  the value is entered in `config.yaml` under `ltm_overrides` with its source (FUN, BHC).
 - **Maturities:** in order of preference: (1) XBRL maturity tags dated within the last
   year (older schedules are stale and ignored); (2) the maturity table printed in the filing,
   entered by hand in `data/inputs/maturity_tables.csv`; (3) the debt note, as a bullet at each
@@ -89,6 +94,7 @@ Bloomberg (RATC).
 | TDG | TransDigm Group | 10-K FY ended 2026-09-30 (0001260221-26-000077) | Not in filing |
 | FUN | Six Flags Entertainment | 10-Q quarter ended 2026-09-27 (0001999001-26-000107) | Not in filing |
 | HGV | Hilton Grand Vacations | 10-Q quarter ended 2026-09-30 (0001674168-26-000108) | Not in filing |
+| BHC | Bausch Health Companies | 10-Q quarter ended 2026-09-30 (0000885590-26-000123) | As of 2026-10-28 (10-Q p.71). BHC: Moody's Caa2 corporate / Caa1 secured / Ca unsecured; S&P B- / B- / CCC+. Bausch + Lomb: Moody's B1 corporate; S&P B / B secured; Fitch B / BB secured |
 | LUMN | Lumen Technologies | 10-Q quarter ended 2026-09-30 (0000018926-26-000073) | Moody's CFR **B2**, Fitch IDR **B** (10-Q p.58 footnote, upgrades Feb 2026). S&P issuer credit rating **B-** affirmed (Lumen news release, 2026-02-23, p.2). Issue ratings as of the 10-Q filing date (2026-11-04, p.58): Lumen secured B3/Caa1 · B+ · BB, unsecured Caa1 · B · BB; Level 3 Financing secured Ba3 · B+ · BB, unsecured B3 · B- · B-; Qwest unsecured Caa1 · B · BB (Moody's · S&P · Fitch) |
 
 ### Issuer-specific notes and simplifications
@@ -127,3 +133,13 @@ Bloomberg (RATC).
   Corporation deregistered (Form 15-12G, 2026-06-12; last 10-Q for Q1 2026) and Level 3
   Parent, LLC has filed no 10-Q since Q3 2025, so neither has financials as of 2026-09-30.
   The debt sits at Lumen (parent), Level 3 Financing and Qwest; the snapshot is consolidated.
+- **BHC:** consolidated, including Bausch + Lomb (consolidated by BHC). Debt sits in three
+  pools (10-Q p.16-22): Bausch + Lomb's own loans and notes, secured only by B+L assets;
+  126NumberCo's term loan B and 10% 2032 notes, secured by the B+L shares it holds plus a
+  pari passu first-lien guarantee from BHC's guarantors; and BHC's existing first-lien,
+  second-lien and unsecured notes, which 126NumberCo does not guarantee. The legal entity of
+  each instrument is recorded in `data/inputs/capital_structure.csv` for the Milestone 3
+  entity-level waterfall. LTM goodwill impairment is $1,571M (FY2025 $145M, 10-K p.F-6, plus
+  9M 2026 $1,426M, 10-Q p.2); XBRL tags only the 2026 amount, so it is entered as an override.
+  Carrying debt ($20,637M) exceeds principal ($20,168M) because of unamortized premiums from
+  exchanges.
