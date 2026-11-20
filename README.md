@@ -64,9 +64,9 @@ Everything is cached in `data/raw/sec/`.
 - **Ranking:** rank 1 = most stretched on each of leverage (highest), coverage (lowest) and
   near-term maturities (highest); composite = average rank. Debt/EBITDA is shown as n/a
   when EBITDA <= 0 but that issuer ranks *first* (worst) on leverage.
-- **Supplementary (not ranked):** EBITDA before goodwill and intangible impairments, shown
-  next to the headline figure because non-cash write-downs can push GAAP operating income
-  negative.
+- **Supplementary (not ranked):** EBITDA excluding goodwill/intangible impairments (added
+  back) and gains on the sale of a business (removed), shown next to the headline figure
+  because one-off items can distort GAAP operating income in either direction.
 - **Maturities:** in order of preference: (1) XBRL maturity tags dated within the last
   year (older schedules are stale and ignored); (2) the maturity table printed in the filing,
   entered by hand in `data/inputs/maturity_tables.csv`; (3) the debt note, as a bullet at each
@@ -86,6 +86,7 @@ Bloomberg (RATC).
 | TDG | TransDigm Group | 10-K FY ended 2026-09-30 (0001260221-26-000077) | Not in filing |
 | FUN | Six Flags Entertainment | 10-Q quarter ended 2026-09-27 (0001999001-26-000107) | Not in filing |
 | HGV | Hilton Grand Vacations | 10-Q quarter ended 2026-09-30 (0001674168-26-000108) | Not in filing |
+| LUMN | Lumen Technologies | 10-Q quarter ended 2026-09-30 (0000018926-26-000073) | Moody's CFR **B2**, Fitch IDR **B** (10-Q p.58 footnote, upgrades Feb 2026). S&P issuer credit rating **B-** affirmed (Lumen news release, 2026-02-23, p.2). Issue ratings as of the 10-Q filing date (2026-11-04, p.58): Lumen secured B3/Caa1 · B+ · BB, unsecured Caa1 · B · BB; Level 3 Financing secured Ba3 · B+ · BB, unsecured B3 · B- · B-; Qwest unsecured Caa1 · B · BB (Moody's · S&P · Fitch) |
 
 ### Issuer-specific notes and simplifications
 - **TDG:** notes are secured (rank equally with the term loans) or senior *subordinated*
@@ -113,3 +114,13 @@ Bloomberg (RATC).
   debt note. **Assumption:** the 6.625% senior notes due 2032 are "guaranteed on a senior
   secured basis" (p.21); the filings do not say whether they share collateral pari passu with
   the credit facility. The model assumes they do (to be checked against the indenture).
+- **LUMN:** the Mass Markets Fiber-to-the-Home business sold to AT&T on Feb 2, 2026 was
+  *not* treated as a discontinued operation (10-Q p.14), so the LTM window (Oct 2025 - Sep
+  2026) still contains its results up to the sale date. The filings do not disclose that
+  business's EBITDA, so it cannot be removed; the CLI prints a caveat. Headline EBITDA also
+  includes the $569M net gain on the sale (inside operating income, 10-Q p.5); the
+  supplementary column removes it. Debt is the consolidated total ($13,193M carrying, tag
+  `DebtAndCapitalLeaseObligations`). **Entity-level data is not available:** Qwest
+  Corporation deregistered (Form 15-12G, 2026-06-12; last 10-Q for Q1 2026) and Level 3
+  Parent, LLC has filed no 10-Q since Q3 2025, so neither has financials as of 2026-09-30.
+  The debt sits at Lumen (parent), Level 3 Financing and Qwest; the snapshot is consolidated.

@@ -40,3 +40,11 @@ HGV,Timeshare SPVs,Timeshare Facility due 2029,nonrecourse,9,550,millions,2029,1
 HGV,Timeshare SPVs,Big Cedar Timeshare Facility due 2029,nonrecourse,9,25,millions,2029,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall
 HGV,Timeshare SPVs,Securitized Debt due 2035-2045,nonrecourse,9,2346,millions,2045,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall
 HGV,Timeshare SPVs,Quorum Purchase Facility due 2034,nonrecourse,9,2,millions,2034,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall
+LUMN,Level 3 Financing Inc.,Term Loan B-5 (SOFR+2.75%),secured,1,2400,millions,2032,10-Q,0000018926-26-000073,24,Subsidiary borrower; consolidated view (entity-level waterfall not built - see README)
+LUMN,Level 3 Financing Inc.,First Lien notes 6.875%-7.000%,secured,1,4425,millions,2033,10-Q,0000018926-26-000073,24,Maturities 2033-2034 (earliest year entered)
+LUMN,Lumen Technologies Inc.,Senior notes 4.500%-7.650%,unsecured,3,1289,millions,2028,10-Q,0000018926-26-000073,24,Maturities 2028-2042 (earliest year entered); parent-level
+LUMN,Level 3 Financing Inc.,Senior notes 3.625%-8.500%,unsecured,3,3024,millions,2028,10-Q,0000018926-26-000073,24,Maturities 2028-2037 (earliest year entered)
+LUMN,Level 3 Financing Inc.,Second Lien notes (formerly secured) 3.875%-4.875%,unsecured,3,48,millions,2029,10-Q,0000018926-26-000073,24,Listed under unsecured in the 10-Q table; maturities 2029-2031
+LUMN,Qwest Corporation,Senior notes 6.500%-7.750%,unsecured,3,1734,millions,2030,10-Q,0000018926-26-000073,24,Maturities 2030-2057 (earliest year entered); structurally senior at Qwest
+LUMN,Qwest Capital Funding Inc.,Senior notes 6.875%-7.750%,unsecured,3,166,millions,2028,10-Q,0000018926-26-000073,24,Maturities 2028-2031 (earliest year entered)
+LUMN,Lumen Technologies Inc.,Finance lease and other obligations,other,3,248,millions,,10-Q,0000018926-26-000073,24,Treated as a general unsecured claim (simplification)

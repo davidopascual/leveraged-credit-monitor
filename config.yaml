@@ -45,3 +45,11 @@ issuers:
     # No operating income subtotal on HGV's income statement (10-Q p.2). "Total operating
     # expenses" (CostsAndExpenses) excludes interest, so Revenues - CostsAndExpenses = operating income.
     operating_income_fallback: revenues_minus_costs_and_expenses
+
+  - ticker: LUMN
+    name: Lumen Technologies
+    cik: 18926
+    fye: "12-31"
+    caveats:
+      - "LTM window (Oct 2025 - Sep 2026) includes the Mass Markets Fiber-to-the-Home business sold to AT&T until Feb 2, 2026; it was kept in continuing operations (10-Q p.14) and its EBITDA is not disclosed separately, so it cannot be removed. Leverage is therefore measured partly on earnings from a business Lumen no longer owns."
+      - "Headline EBITDA includes the $569M net gain on the sale, booked in operating income (10-Q p.5). The supplementary column removes it."

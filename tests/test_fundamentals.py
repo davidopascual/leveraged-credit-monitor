@@ -333,3 +333,20 @@ def test_schedule_from_printed_table_converts_units_and_labels_thereafter():
     })
     s = schedule_from_printed_table(rows, date(2026, 9, 30))
     assert s.buckets == pytest.approx({"FY2026": 6e6, "FY2027": 22e6, "FY2028+": 3095e6})
+
+
+def test_combined_debt_tag_is_not_double_counted_with_short_term():
+    lt = fm.Resolved("long_term_debt", 13193.0, "DebtAndCapitalLeaseObligations")
+    st = fm.Resolved("short_term_debt", 50.0, "ShortTermBorrowings")
+    assert fm.total_debt(lt, st) == 13193.0
+
+
+def test_debt_tag_order_prefers_net_carrying_over_gross_principal():
+    # Lumen pattern: no LongTermDebt; net total under DebtAndCapitalLeaseObligations,
+    # gross principal under ...IncludingCurrentMaturities.
+    doc = cf({
+        "DebtAndCapitalLeaseObligations": [{"end": "2026-09-30", "val": 13193}],
+        "LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities": [{"end": "2026-09-30", "val": 13334}],
+    })
+    r = fm.resolve_long_term_debt(doc, date(2026, 9, 30))
+    assert r.value == 13193 and r.tag == "DebtAndCapitalLeaseObligations"

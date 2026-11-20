@@ -118,11 +118,22 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
         "rank_leverage": "{:.0f}".format, "rank_coverage": "{:.0f}".format, "rank_near_term": "{:.0f}".format}))
     print("near_term_pct = share of scheduled principal due by the end of the next fiscal year after the current one")
 
-    print("\nSUPPLEMENTARY (not used in ranking): EBITDA before goodwill & intangible impairments")
-    print(table[["ticker", "ltm_impairments_musd", "ebitda_pre_impairment_musd", "debt_to_ebitda_pre_impairment",
-                 "maturity_source"]].to_string(index=False, na_rep="n/a", formatters={
-        "ltm_impairments_musd": "{:,.0f}".format, "ebitda_pre_impairment_musd": "{:,.0f}".format,
-        "debt_to_ebitda_pre_impairment": "{:.2f}x".format}))
+    print("\nSUPPLEMENTARY (not used in ranking): EBITDA excl. goodwill/intangible impairments and gains on business sales")
+    print(table[["ticker", "ltm_impairments_musd", "ltm_gain_on_sale_musd", "ebitda_excl_one_offs_musd",
+                 "debt_to_ebitda_excl_one_offs", "maturity_source"]].to_string(index=False, na_rep="n/a", formatters={
+        "ltm_impairments_musd": "{:,.0f}".format, "ltm_gain_on_sale_musd": "{:,.0f}".format,
+        "ebitda_excl_one_offs_musd": "{:,.0f}".format, "debt_to_ebitda_excl_one_offs": "{:.2f}x".format}))
+
+    nonrec = cap[cap["class"] == "nonrecourse"].groupby("ticker")["principal_musd"].sum()
+    for t, v in nonrec.items():
+        if t in set(table["ticker"]):
+            print(f"\nNON-RECOURSE DEBT (separate line, excluded from total debt, ratios and waterfall): {t} {v:,.0f}")
+
+    caveats = [(i["ticker"], c) for i in selected for c in i.get("caveats", [])]
+    if caveats:
+        print("\nCAVEATS")
+        for tk, c in caveats:
+            print(f"  {tk}: {c}")
 
     print("\nDEBT RECONCILIATION: XBRL total debt (carrying) vs debt-note gross principal (data/inputs)")
     for r in rows:

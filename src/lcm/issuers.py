@@ -78,6 +78,7 @@ def build_snapshot(
         "d_and_a": fm.resolve_ltm(cf, "d_and_a", fm.DA_TAGS, end),
         "interest": fm.resolve_ltm(cf, "interest", fm.INTEREST_TAGS, end),
         "impairments": fm.resolve_ltm(cf, "impairments", fm.IMPAIRMENT_TAGS, end),
+        "gain_on_business_sale": fm.resolve_ltm(cf, "gain_on_business_sale", fm.GAIN_ON_BUSINESS_SALE_TAGS, end),
     }
     debt = fm.total_debt(fields["long_term_debt"], fields["short_term_debt"])
     ebitda = fm.ebitda(fields["operating_income"].value, fields["d_and_a"].value)
@@ -119,13 +120,15 @@ def metrics_row(s: Snapshot, capstructure_musd: float | None) -> dict[str, objec
         "maturity_source": s.maturity_source,
         "debt_note_principal_musd": capstructure_musd if capstructure_musd is not None else math.nan,
     }
-    # Supplementary, not used in ranking: EBITDA before goodwill/intangible impairments.
-    imp = s.fields["impairments"]
+    # Supplementary, not used in ranking: EBITDA excluding impairments and gains on business sales.
+    imp, gain = s.fields["impairments"], s.fields["gain_on_business_sale"]
     imp_usd = 0.0 if imp.missing else imp.value
-    pre = s.ebitda_usd + imp_usd
+    gain_usd = 0.0 if gain.missing else gain.value
+    adj = fm.ebitda_excl_one_offs(s.ebitda_usd, imp_usd, gain_usd)
     row["ltm_impairments_musd"] = imp_usd / m
-    row["ebitda_pre_impairment_musd"] = pre / m
-    row["debt_to_ebitda_pre_impairment"] = fm.leverage(s.debt_usd, pre)
+    row["ltm_gain_on_sale_musd"] = gain_usd / m
+    row["ebitda_excl_one_offs_musd"] = adj / m
+    row["debt_to_ebitda_excl_one_offs"] = fm.leverage(s.debt_usd, adj)
     return row
 
 
@@ -134,7 +137,7 @@ def audit_rows(s: Snapshot) -> list[dict[str, object]]:
         {
             "ticker": s.ticker,
             "field": r.field,
-            "tag": r.tag or ("none reported (treated as 0)" if r.field in ("short_term_debt", "impairments") else "MISSING"),
+            "tag": r.tag or ("none reported (treated as 0)" if r.field in ("short_term_debt", "impairments", "gain_on_business_sale") else "MISSING"),
             "value_musd": r.value / 1e6,
             "detail": r.detail,
         }

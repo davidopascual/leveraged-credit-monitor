@@ -32,24 +32,32 @@ class Candidate:
     tag: str
     sign: float = 1.0       # -1 for "net" tags reported as negative expense
     note: str = ""
+    includes_short_term: bool = False   # debt tags that already include short-term borrowings
 
 
 DEBT_TAGS = [
     Candidate("LongTermDebt"),
-    Candidate("DebtLongtermAndShorttermCombinedAmount"),
+    Candidate("DebtLongtermAndShorttermCombinedAmount", includes_short_term=True),
+    Candidate("DebtAndCapitalLeaseObligations", includes_short_term=True),
     Candidate("LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities"),
     Candidate("DebtInstrumentCarryingAmount", note="instrument carrying amount"),
 ]
+SHORT_TERM_INCLUSIVE_TAGS = {c.tag for c in DEBT_TAGS if c.includes_short_term}
 # By the US-GAAP taxonomy definition, LongTermDebt excludes short-term borrowings,
 # so adding these does not double count.
 SHORT_TERM_DEBT_TAGS = [
     Candidate("ShortTermBorrowings"),
     Candidate("ShortTermBankLoansAndNotesPayable"),
 ]
-# Supplementary only (shown, never used in the headline EBITDA or the ranking).
+# Supplementary only (shown, never used in the headline EBITDA or the ranking):
+# EBITDA + impairments - gains on business sales.
 IMPAIRMENT_TAGS = [
     Candidate("GoodwillAndIntangibleAssetImpairment"),
     Candidate("GoodwillImpairmentLoss", note="goodwill only"),
+]
+GAIN_ON_BUSINESS_SALE_TAGS = [
+    Candidate("GainLossOnSaleOfBusiness"),
+    Candidate("DisposalGroupNotDiscontinuedOperationGainLossOnDisposal"),
 ]
 OPERATING_INCOME_TAGS = [Candidate("OperatingIncomeLoss")]
 DA_TAGS = [
@@ -156,10 +164,22 @@ def resolve_ltm(cf: dict, name: str, candidates: list[Candidate], end: date) -> 
 
 
 def total_debt(long_term: Resolved, short_term: Resolved) -> float:
-    """Long-term debt (required) + short-term borrowings (0 if none reported)."""
+    """Long-term debt (required) + short-term borrowings (0 if none reported).
+
+    If the debt tag used already includes short-term borrowings, nothing is added.
+    """
     if long_term.missing:
         return math.nan
-    return long_term.value + (0.0 if short_term.missing else short_term.value)
+    if short_term.missing or long_term.tag in SHORT_TERM_INCLUSIVE_TAGS:
+        return long_term.value
+    return long_term.value + short_term.value
+
+
+def ebitda_excl_one_offs(ebitda_value: float, impairments: float, gains_on_sale: float) -> float:
+    """Supplementary EBITDA: add back impairments, remove gains on sale of a business."""
+    if math.isnan(ebitda_value):
+        return math.nan
+    return ebitda_value + impairments - gains_on_sale
 
 
 # --------------------------------------------------------------------------
