@@ -31,9 +31,13 @@ $PY -m lcm recovery         # Milestone 3: coverage multiples + recovery scenari
 ~/.venvs/credit-monitor/bin/pytest                             # tests
 ```
 
-The first run downloads and caches raw data in `data/raw/`; later runs work offline
-(`--refresh` re-downloads). Outputs (tables and charts) go to `outputs/`. Both folders are
-git-ignored and can be recreated from the code.
+The first run downloads and caches raw data in `data/raw/` (git-ignored); later runs work
+offline (`--refresh` re-downloads). Outputs go to `outputs/`, which **is committed**, so the
+tables and charts from the latest run can be viewed on GitHub without running anything.
+Re-running the commands overwrites them.
+
+ICE BofA index data is the property of ICE Data Indices, LLC and is used here via FRED;
+the repository contains only derived statistics and charts, not the raw series.
 
 The virtual environment lives outside the project on purpose: on macOS with iCloud
 Desktop sync, iCloud marks files inside a synced folder as hidden, and Python 3.13 skips

@@ -3,9 +3,8 @@
 *.env
 !.env.example
 
-# cached API data and generated outputs (re-creatable from the code)
+# cached raw API responses (re-downloadable; outputs/ IS committed)
 data/raw/
-outputs/
 
 # licensed market data (Bloomberg prices) - never commit
 data/inputs/prices.csv

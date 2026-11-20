@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from lcm import fred, spreads
+from lcm import fred
 from lcm.config import OUTPUT_DIR, RAW_DIR, load_config
 
 st.set_page_config(page_title="Leveraged Credit Monitor", layout="wide")
@@ -56,23 +56,20 @@ if need("spread_summary.csv"):
         "level_bp": "{:.0f}", "chg_1d_bp": "{:+.0f}", "chg_5d_bp": "{:+.0f}", "chg_1m_bp": "{:+.0f}",
         "pctile_1y": "{:.0f}", "z_1y": "{:+.2f}"}, na_rep="n/a"), hide_index=True, width="stretch")
 
-    cache = RAW_DIR / "fred"
+    # Fixed images saved by `lcm spreads` (the same charts as the CLI; no scroll-zoom).
+    c1, c2 = st.columns(2)
+    for col, name, label in [(c1, "oas_levels.png", "OAS levels (bp)"),
+                             (c2, "ccc_minus_bb.png", "CCC − BB differential (bp)")]:
+        with col:
+            st.subheader(label)
+            if (OUTPUT_DIR / name).exists():
+                st.image(str(OUTPUT_DIR / name))
     try:
-        series = {name: fred.load_series(sid, None, CFG["fred"]["base_url"], cache).values
-                  for name, sid in CFG["fred"]["series"].items()}
-        levels = pd.DataFrame({k: v.map(spreads.to_bp) for k, v in series.items()})
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("OAS levels (bp)")
-            st.line_chart(levels, height=320)
-        with c2:
-            st.subheader("CCC − BB differential (bp)")
-            diff = spreads.spread_difference(series["CCC"], series["BB"]).map(spreads.to_bp)
-            st.line_chart(pd.DataFrame({"CCC − BB": diff}), height=320)
-        first, last = levels.dropna().index.min().date(), levels.dropna().index.max().date()
-        st.caption(f"History available from FRED: {first} to {last} (FRED serves about three years of these series).")
-    except RuntimeError as e:
-        st.info(f"Cached FRED data not found ({e}). Run `python -m lcm spreads` once with FRED_API_KEY set.")
+        sample = fred.load_series(CFG["fred"]["series"]["HY"], None, CFG["fred"]["base_url"], RAW_DIR / "fred").values
+        st.caption(f"History available from FRED: {sample.index.min().date()} to {sample.index.max().date()} "
+                   "(FRED serves about three years of these series).")
+    except RuntimeError:
+        st.caption("FRED serves about three years of these series; see the chart axes for the range used.")
 
 # ---------------------------------------------------------------------------
 # 2. Issuer snapshots

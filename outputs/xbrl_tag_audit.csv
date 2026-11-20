@@ -1,0 +1,41 @@
+ticker,field,tag,value_musd,detail
+TDG,long_term_debt,LongTermDebt,33890.0,as of 2026-09-30
+TDG,short_term_debt,ShortTermBankLoansAndNotesPayable,873.0,as of 2026-09-30
+TDG,operating_income,OperatingIncomeLoss,4811.0,FY 2025-10-01..2026-09-30
+TDG,d_and_a,DepreciationDepletionAndAmortization,445.0,FY 2025-10-01..2026-09-30
+TDG,interest,InterestIncomeExpenseNet,2008.0,FY 2025-10-01..2026-09-30 (net of interest income)
+TDG,impairments,none reported (treated as 0),,no candidate tag gives an LTM value ending 2026-09-30
+TDG,gain_on_business_sale,GainLossOnSaleOfBusiness,0.0,FY 2025-10-01..2026-09-30
+TDG,maturities,"…InNextTwelveMonths, …InYearTwo, …InYearThree, …InYearFour, …InYearFive, …AfterYearFive",33780.0,as of 2026-09-30; source: XBRL
+FUN,long_term_debt,LongTermDebt + LongTermDebtCurrent,4906.126,"as of 2026-09-27 (filer's LongTermDebt equals LongTermDebtNoncurrent, so current portion added)"
+FUN,short_term_debt,none reported (treated as 0),,no candidate tag has a value as of 2026-09-27
+FUN,operating_income,OperatingIncomeLoss,-548.384,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-27 - YTD 2025-01-01..2025-09-28
+FUN,d_and_a,DepreciationAndAmortization,438.982,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-27 - YTD 2025-01-01..2025-09-28
+FUN,interest,InterestIncomeExpenseNonoperatingNet,376.072,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-27 - YTD 2025-01-01..2025-09-28 (net of interest income)
+FUN,impairments,GoodwillAndIntangibleAssetImpairment,717.307,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-27 - YTD 2025-01-01..2025-09-28
+FUN,gain_on_business_sale,manual (from filing),-41.027,"10-Q 0001999001-26-000107 p.4 (Loss on disposal group: 9M 2026 41,027; 9M 2025 —); 10-K 0001999001-26-000048 (no such line in FY2025) | LTM loss = 0 + 41,027 - 0 ($ thousands). XBRL tags only the 2026 year-to-date amount."
+FUN,maturities,debt note (data/inputs/capital_structure.csv),4923.703,as of 2026-09-27; source: debt note bullets (no XBRL tags or printed table)
+HGV,long_term_debt,LongTermDebt,4885.0,as of 2026-09-30
+HGV,short_term_debt,none reported (treated as 0),,no candidate tag has a value as of 2026-09-30
+HGV,operating_income,Revenues - CostsAndExpenses (derived),893.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30; derived (issuer has no operating income subtotal)
+HGV,d_and_a,DepreciationDepletionAndAmortization,292.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+HGV,interest,InterestExpenseNonoperating,297.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+HGV,impairments,none reported (treated as 0),,no candidate tag gives an LTM value ending 2026-09-30
+HGV,gain_on_business_sale,none reported (treated as 0),,no candidate tag gives an LTM value ending 2026-09-30
+HGV,maturities,printed maturity table (data/inputs/maturity_tables.csv),4946.0,as of 2026-09-30; source: printed maturity table (XBRL maturity tags missing)
+LUMN,long_term_debt,DebtAndCapitalLeaseObligations,13193.0,as of 2026-09-30
+LUMN,short_term_debt,none reported (treated as 0),,no candidate tag has a value as of 2026-09-30
+LUMN,operating_income,OperatingIncomeLoss,147.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+LUMN,d_and_a,DepreciationDepletionAndAmortization,2676.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+LUMN,interest,InterestExpenseNonoperating,895.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+LUMN,impairments,GoodwillImpairmentLoss,0.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30 (goodwill only)
+LUMN,gain_on_business_sale,GainLossOnSaleOfBusiness,569.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+LUMN,maturities,printed maturity table (data/inputs/maturity_tables.csv),13334.0,as of 2026-09-30; source: printed maturity table (XBRL maturity tags missing)
+BHC,long_term_debt,LongTermDebt,20637.0,as of 2026-09-30
+BHC,short_term_debt,none reported (treated as 0),,no candidate tag has a value as of 2026-09-30
+BHC,operating_income,OperatingIncomeLoss,1247.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+BHC,d_and_a,DepreciationAndAmortization,1150.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+BHC,interest,InterestExpenseDebt,1593.0,FY 2025-01-01..2025-12-31 + YTD 2026-01-01..2026-09-30 - YTD 2025-01-01..2025-09-30
+BHC,impairments,manual (from filing),1571.0,"10-K 0000885590-26-000023 p.F-6 (FY2025 goodwill impairments 145); 10-Q 0000885590-26-000123 p.2 (9M 2026: 1,426; 9M 2025: —) | LTM = FY2025 145 + 9M 2026 1,426 - 9M 2025 0. XBRL tags only the 2026 year-to-date amount."
+BHC,gain_on_business_sale,none reported (treated as 0),,no candidate tag gives an LTM value ending 2026-09-30
+BHC,maturities,"…RemainderOfFiscalYear, …InNextTwelveMonths, …InYearTwo, …InYearThree, …InYearFour, …InYearFive, …AfterYearFive",20168.0,as of 2026-09-30; source: XBRL

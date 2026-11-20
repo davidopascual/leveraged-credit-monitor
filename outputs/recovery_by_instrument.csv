@@ -1,0 +1,58 @@
+ticker,group,instrument,priority,principal_musd,recovery_4x,recovery_5.5x,recovery_7x
+TDG,Receivables securitization,Trade receivable securitization facility,0,875.0,100.0,100.0,100.0
+TDG,First-lien secured,Term loans,1,12803.0,59.2934987437186,82.81673994974875,100.0
+TDG,First-lien secured,6.750% secured notes due 2028,1,269.0,59.2934987437186,82.81673994974874,100.0
+TDG,First-lien secured,6.375% secured notes due 2029,1,2750.0,59.29349874371859,82.81673994974874,100.0
+TDG,First-lien secured,6.875% secured notes due 2030,1,1450.0,59.2934987437186,82.81673994974877,100.0
+TDG,First-lien secured,7.125% secured notes due 2031,1,1000.0,59.2934987437186,82.81673994974877,100.00000000000003
+TDG,First-lien secured,6.625% secured notes due 2032,1,2200.0,59.2934987437186,82.81673994974875,100.0
+TDG,First-lien secured,6.000% secured notes due 2033,1,1500.0,59.2934987437186,82.81673994974875,100.0
+TDG,First-lien secured,6.250% secured notes due 2034,1,500.0,59.2934987437186,82.81673994974877,100.00000000000003
+TDG,First-lien secured,6.750% secured notes due 2035,1,3000.0,59.2934987437186,82.81673994974875,100.0
+TDG,Subordinated,4.625% senior subordinated notes due 2029,4,1200.0,0.0,0.0,15.215903614457854
+TDG,Subordinated,4.875% senior subordinated notes due 2029,4,750.0,0.0,0.0,15.215903614457854
+TDG,Subordinated,6.375% senior subordinated notes due 2033,4,2650.0,0.0,0.0,15.215903614457854
+TDG,Subordinated,6.750% senior subordinated notes due 2034,4,2000.0,0.0,0.0,15.215903614457854
+TDG,Subordinated,6.125% senior subordinated notes due 2034,4,1700.0,0.0,0.0,15.215903614457854
+TDG,Senior unsecured & other,Government refundable advances,3,8.0,0.0,0.0,100.0
+TDG,Senior unsecured & other,Finance lease obligations,3,344.0,0.0,0.0,100.0
+FUN,First-lien secured,Term loan (senior secured; $15.0M/yr amortization),1,1473.703,84.89696316611891,100.0,100.0
+FUN,First-lien secured,2032 senior secured notes at 6.625%,1,850.0,84.89696316611891,100.0,100.0
+FUN,Senior unsecured & other,2028 senior unsecured notes at 6.500%,3,300.0,0.0,14.955106153846165,43.40827846153849
+FUN,Senior unsecured & other,2029 senior unsecured notes at 5.250%,3,500.0,0.0,14.955106153846161,43.40827846153849
+FUN,Senior unsecured & other,2031 senior unsecured notes at 7.250%,3,800.0,0.0,14.955106153846161,43.40827846153849
+FUN,Senior unsecured & other,2032 senior unsecured notes at 8.625%,3,1000.0,0.0,14.955106153846161,43.40827846153849
+HGV,First-lien secured,Term loan A due 2028,1,400.0,100.0,100.0,100.0
+HGV,First-lien secured,Term loan B due 2031,1,880.0,100.0,100.0,100.0
+HGV,First-lien secured,Term loan B due 2033,1,850.0,100.0,100.0,100.0
+HGV,First-lien secured,Revolver due 2030 (drawn),1,490.0,99.99999999999999,99.99999999999999,99.99999999999999
+HGV,First-lien secured,6.625% Senior notes due 2032,1,900.0,100.0,100.0,100.0
+HGV,Senior unsecured & other,5.000% Senior notes due 2029,3,850.0,5.778401122019609,100.0,100.0
+HGV,Senior unsecured & other,4.875% Senior notes due 2031,3,500.0,5.77840112201961,100.0,100.0
+HGV,Senior unsecured & other,Other debt,3,76.0,5.778401122019609,100.0,100.0
+LUMN,First-lien secured,Term Loan B-5 (SOFR+2.75%),1,2400.0,100.0,100.0,100.0
+LUMN,First-lien secured,First Lien notes 6.875%-7.000%,1,4425.0,100.0,100.0,100.0
+LUMN,Senior unsecured & other,Senior notes 4.500%-7.650%,3,1289.0,0.41726839760331624,39.894300199723446,79.37133200184357
+LUMN,Senior unsecured & other,Senior notes 3.625%-8.500%,3,3024.0,0.41726839760331624,39.894300199723446,79.37133200184358
+LUMN,Senior unsecured & other,Second Lien notes (formerly secured) 3.875%-4.875%,3,48.0,0.4172683976033163,39.894300199723446,79.37133200184357
+LUMN,Senior unsecured & other,Senior notes 6.500%-7.750%,3,1734.0,0.41726839760331624,39.894300199723446,79.37133200184358
+LUMN,Senior unsecured & other,Senior notes 6.875%-7.750%,3,166.0,0.41726839760331624,39.894300199723446,79.37133200184357
+LUMN,Senior unsecured & other,Finance lease and other obligations,3,248.0,0.41726839760331624,39.89430019972345,79.37133200184358
+BHC,B+L secured,B+L January 2031 Refinancing Term Facility,1,2788.0,47.34771422917079,65.10310706510984,82.85849990104886
+BHC,B+L secured,B+L 2030 Revolving Credit Facility (drawn),1,100.0,47.34771422917079,65.10310706510982,82.85849990104886
+BHC,B+L secured,B+L 8.375% Secured Notes due Oct 2028,1,1400.0,47.3477142291708,65.10310706510984,82.85849990104886
+BHC,B+L secured,B+L January 2031 Secured Notes,1,765.0,47.3477142291708,65.10310706510984,82.85849990104887
+BHC,B+L unsecured & other,Other,3,12.0,0.0,0.0,0.0
+BHC,126NumberCo 1L (B+L shares + BHC guarantee),2030 Term Loan B Facility,1,2962.0,90.77480521918709,100.0,100.0
+BHC,126NumberCo 1L (B+L shares + BHC guarantee),10.00% Secured Notes due April 2032,1,6000.0,90.77480521918709,100.0,100.0
+BHC,BHC existing first lien,4.875% Secured Notes due June 2028,1,803.0,90.77480521918709,99.99999999999999,99.99999999999999
+BHC,BHC existing first lien,11.00% First Lien Secured Notes due Sept 2028,1,888.0,90.77480521918709,100.0,100.0
+BHC,BHC second lien,14.00% Second Lien Secured Notes due Oct 2030,2,352.0,0.0,100.0,100.0
+BHC,BHC unsecured & other,8.50% Senior Unsecured Notes due Jan 2027,3,643.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,7.00% Senior Unsecured Notes due Jan 2028,3,171.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,5.00% Senior Unsecured Notes due Jan 2028,3,433.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,6.25% Senior Unsecured Notes due Feb 2029,3,821.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,5.00% Senior Unsecured Notes due Feb 2029,3,452.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,7.25% Senior Unsecured Notes due May 2029,3,336.0,0.0,55.919472913616396,100.0
+BHC,BHC unsecured & other,5.25% Senior Unsecured Notes due Jan 2030,3,779.0,0.0,55.91947291361639,100.0
+BHC,BHC unsecured & other,5.25% Senior Unsecured Notes due Feb 2031,3,463.0,0.0,55.919472913616396,100.0

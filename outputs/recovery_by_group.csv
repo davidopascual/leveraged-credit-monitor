@@ -1,0 +1,17 @@
+ticker,group,priority,display_order,principal_musd,recovery_4x,recovery_5.5x,recovery_7x
+TDG,Receivables securitization,0,0,875.0,100.0,100.0,100.0
+TDG,First-lien secured,1,1,25472.0,59.2934987437186,82.81673994974875,100.0
+TDG,Subordinated,4,4,8300.0,0.0,0.0,15.215903614457854
+TDG,Senior unsecured & other,3,3,352.0,0.0,0.0,100.0
+FUN,First-lien secured,1,1,2323.703,84.8969631661189,100.0,100.0
+FUN,Senior unsecured & other,3,3,2600.0,0.0,14.955106153846161,43.40827846153848
+HGV,First-lien secured,1,1,3520.0,100.0,100.0,100.0
+HGV,Senior unsecured & other,3,3,1426.0,5.77840112201961,100.0,100.0
+LUMN,First-lien secured,1,1,6825.0,100.0,100.0,100.0
+LUMN,Senior unsecured & other,3,3,6509.0,0.4172683976033163,39.894300199723446,79.37133200184358
+BHC,B+L secured,1,1,5053.0,47.34771422917079,65.10310706510984,82.85849990104886
+BHC,B+L unsecured & other,3,3,12.0,0.0,0.0,0.0
+BHC,126NumberCo 1L (B+L shares + BHC guarantee),1,11,8962.0,90.77480521918709,100.0,100.0
+BHC,BHC existing first lien,1,21,1691.0,90.77480521918707,100.0,100.0
+BHC,BHC second lien,2,22,352.0,0.0,100.0,100.0
+BHC,BHC unsecured & other,3,23,4098.0,0.0,55.91947291361641,100.0
