@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -155,6 +156,38 @@ def plot_leverage_comparison(table: pd.DataFrame, out: Path) -> Path:
     fig.text(0.01, 0.01, "Source: SEC EDGAR XBRL, LTM. Adjusted = + impairments − gains on business/disposal-group sales. "
              "Order = headline (adjusted) rank.", fontsize=8, color=INK_MUTED)
     fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out
+
+
+RECOVERY_SHADES = ["#9ec5f4", "#4f93e0", "#1d5aa8"]   # one hue, light -> dark = low -> high multiple
+
+
+def plot_recoveries(ticker: str, groups: pd.DataFrame, multiples: list[float], subtitle: str, out: Path) -> Path:
+    """Recovery % by claim group (seniority order) for each EV/EBITDA scenario."""
+    g = groups.sort_values("display_order" if "display_order" in groups else "priority").reset_index(drop=True)
+    n = len(multiples)
+    w = 0.8 / n
+    fig, ax = plt.subplots(figsize=(max(8, 1.9 * len(g) + 2), 4.8))
+    ax.set_axisbelow(True)
+    for k, mlt in enumerate(multiples):
+        col = f"recovery_{mlt:g}x"
+        xs = [i + (k - (n - 1) / 2) * w for i in range(len(g))]
+        ax.bar(xs, g[col], width=w * 0.92, color=RECOVERY_SHADES[k % len(RECOVERY_SHADES)], label=f"{mlt:g}x EBITDA")
+        for xi, v in zip(xs, g[col]):
+            ax.annotate(f"{v:.0f}%", xy=(xi, v), xytext=(0, 2), textcoords="offset points",
+                        ha="center", fontsize=8, color=INK)
+    def size(amt: float) -> str:
+        return f"${amt / 1000:,.1f}bn" if amt >= 1000 else f"${amt:,.0f}M"
+    labels = [textwrap.fill(grp, 18) + f"\n{size(amt)}" for grp, amt in zip(g["group"], g["principal_musd"])]
+    ax.set_xticks(range(len(g)), labels, fontsize=8)
+    ax.set_ylim(0, 125)
+    ax.set_yticks(range(0, 101, 20))
+    _style(ax, f"{ticker}: scenario recoveries by seniority", "Recovery (% of principal)")
+    ax.legend(frameon=False, loc="upper center", ncol=len(multiples), fontsize=8)
+    fig.text(0.01, 0.01, subtitle, fontsize=8, color=INK_MUTED)
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
     fig.savefig(out, dpi=150)
     plt.close(fig)
     return out

@@ -66,6 +66,8 @@ def apply_overrides(fields: dict[str, fm.Resolved], overrides: dict) -> None:
     Only for fields XBRL cannot supply; an override never replaces a value XBRL does give.
     """
     for name, ov in overrides.items():
+        if "value_musd" not in ov:
+            continue                                     # non-money inputs (e.g. share counts) are used elsewhere
         r = fields.get(name)
         if r is None:
             raise ValueError(f"override for unknown field {name!r}")
@@ -162,10 +164,12 @@ def load_overrides(path: Path) -> dict[str, dict[str, dict]]:
     df = pd.read_csv(path, comment="#")
     out: dict[str, dict[str, dict]] = {}
     for _, r in df.iterrows():
-        out.setdefault(r["ticker"], {})[r["field"]] = {
-            "value_musd": to_millions(float(r["value"]), r["units"]),
-            "source": f"{r['sources']} | {r['explanation']}",
-        }
+        entry = {"source": f"{r['sources']} | {r['explanation']}"}
+        if str(r["units"]).strip().lower() == "shares":
+            entry["shares"] = float(r["value"])            # share counts are not money
+        else:
+            entry["value_musd"] = to_millions(float(r["value"]), r["units"])
+        out.setdefault(r["ticker"], {})[r["field"]] = entry
     return out
 
 

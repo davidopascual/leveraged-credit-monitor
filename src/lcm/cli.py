@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import math
 
 import pandas as pd
 
-from lcm import capstructure, charts, fred, issuers, spreads
+from lcm import capstructure, charts, fred, issuers, recovery, spreads
 from lcm.config import OUTPUT_DIR, RAW_DIR, ROOT, get_secret, load_config
 
 
@@ -83,6 +84,122 @@ def run_spreads(refresh: bool) -> int:
     return 0
 
 
+def _snapshots(selected, ua, cache, refresh, cap, mat, overrides):
+    return [
+        issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]],
+                               mat[mat["ticker"] == i["ticker"]], overrides.get(i["ticker"]))
+        for i in selected
+    ]
+
+
+def run_recovery(refresh: bool, only: list[str] | None) -> int:
+    cfg = load_config()
+    rcfg = cfg["recovery"]
+    ua = get_secret("SEC_USER_AGENT") or ""
+    cache = RAW_DIR / "sec"
+    inputs = ROOT / "data" / "inputs"
+    cap = capstructure.load(inputs / "capital_structure.csv")
+    mat = pd.read_csv(inputs / "maturity_tables.csv", comment="#", dtype={"year": str})
+    overrides = issuers.load_overrides(inputs / "manual_overrides.csv")
+    selected = [i for i in cfg["issuers"] if not only or i["ticker"] in only]
+    snaps = {s.ticker: s for s in _snapshots(selected, ua, cache, refresh, cap, mat, overrides)}
+    adj = {t: issuers.metrics_row(s, None)["ebitda_adj_musd"] for t, s in snaps.items()}
+    mults, admin, hc = rcfg["multiples"], rcfg["admin_pct"], rcfg["default_ebitda_haircut"]
+
+    print("\nRECOVERY WATERFALL ASSUMPTIONS (config.yaml -> recovery; see README)")
+    print(f"  default-scenario EBITDA = LTM adjusted EBITDA x (1 - {hc:.0%});  admin & priority claims = "
+          f"{admin:.0%} of EV;  multiples = {', '.join(f'{m:g}x' for m in mults)}")
+    print("  claims = principal from data/inputs/capital_structure.csv (no accrued interest); non-recourse debt excluded")
+
+    results: list[recovery.ScenarioResult] = []
+    for t in snaps:
+        rows = cap[cap["ticker"] == t]
+        if rows.empty or math.isnan(adj[t]):
+            print(f"  {t}: skipped (no capital structure rows or adjusted EBITDA n/a)")
+            continue
+        if t == "BHC":
+            bl_cfg = rcfg["bhc_bausch_lomb"]
+            bl = issuers.build_snapshot({"ticker": "BLCO", "cik": bl_cfg["cik"], "fye": bl_cfg["fye"]}, ua, cache, refresh)
+            bl_adj = issuers.metrics_row(bl, None)["ebitda_adj_musd"]
+            shares_out = recovery_shares_outstanding(cache, bl_cfg["cik"])
+            o = overrides["BHC"]
+            pledged = o["blco_shares_pledged_126numberco"]["shares"] / shares_out
+            other = (o["blco_shares_held_by_bhc_total"]["shares"] - o["blco_shares_pledged_126numberco"]["shares"]) / shares_out
+            bl_claims, nc_claims, rc_claims = recovery.split_bhc_rows(rows)
+            print(f"\n  BHC entity inputs: B+L LTM adjusted EBITDA {bl_adj:,.0f} (B+L {bl.source_filing}); "
+                  f"BHC ex-B+L {adj[t] - bl_adj:,.0f}; B+L shares outstanding {shares_out:,.0f} -> "
+                  f"126NumberCo pledged {pledged:.1%}, other BHC {other:.1%}, public {1 - pledged - other:.1%}")
+            for m in mults:
+                results.append(recovery.bhc_entity_waterfall(
+                    recovery.default_ebitda(bl_adj, hc), recovery.default_ebitda(adj[t] - bl_adj, hc), m, admin,
+                    bl_claims, nc_claims, rc_claims, pledged, other))
+        else:
+            for m in mults:
+                results.append(recovery.single_group_scenario(t, rows, recovery.default_ebitda(adj[t], hc), m, admin))
+
+    scen = recovery.scenario_table(results)
+    groups = recovery.group_table(results)
+    instr = recovery.instrument_table(results)
+    pct = "{:.0f}%".format
+    m0 = "{:,.0f}".format
+    rec_cols = [f"recovery_{m:g}x" for m in mults]
+    for t in scen["ticker"].unique():
+        print(f"\n=== {t} ===")
+        print(scen[scen.ticker == t].drop(columns="ticker").to_string(index=False, formatters={
+            "multiple": "{:g}x".format, **{c: m0 for c in scen.columns if c.endswith("_musd")}}))
+        for r in results:
+            if r.ticker == t and r.notes:
+                print(f"  [{r.multiple:g}x] " + "\n         ".join(r.notes))
+        g = groups[groups.ticker == t].sort_values("display_order").drop(columns=["ticker", "display_order"])
+        print(g.to_string(index=False, formatters={"principal_musd": m0, **{c: pct for c in rec_cols}}))
+        caveat = {"LUMN": "consolidated waterfall; entity-level structure would change recoveries (see README)",
+                  "HGV": "corporate debt only; $2,923M non-recourse timeshare debt is paid from its own receivables"}
+        if t in caveat:
+            print(f"  NOTE: {caveat[t]}")
+
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    scen.to_csv(OUTPUT_DIR / "recovery_scenarios.csv", index=False)
+    groups.to_csv(OUTPUT_DIR / "recovery_by_group.csv", index=False)
+    instr.to_csv(OUTPUT_DIR / "recovery_by_instrument.csv", index=False)
+    saved = [OUTPUT_DIR / f for f in ("recovery_scenarios.csv", "recovery_by_group.csv", "recovery_by_instrument.csv")]
+    sub = (f"Default EBITDA = LTM adjusted x (1-{hc:.0%}); admin {admin:.0%} of EV; principal claims. "
+           "Source: SEC filings; scenario estimates, not forecasts.")
+    for t in groups["ticker"].unique():
+        saved.append(charts.plot_recoveries(t, groups[groups.ticker == t], mults, sub,
+                                            OUTPUT_DIR / f"recovery_{t}.png"))
+
+    prices_path = inputs / "prices.csv"
+    base_col = f"recovery_{rcfg['base_case_multiple']:g}x"
+    if prices_path.exists():
+        prices = pd.read_csv(prices_path, comment="#")
+        cmp_ = recovery.compare_prices(instr, prices, base_col)
+        print(f"\nPRICE VS RECOVERY (base case {rcfg['base_case_multiple']:g}x; cushion = recovery - price, points)")
+        print(cmp_[["ticker", "instrument", "price", "price_date", *rec_cols, "cushion_pts",
+                    "rank_cheap_within_issuer"]].to_string(index=False))
+        cmp_.to_csv(OUTPUT_DIR / "price_vs_recovery.csv", index=False)
+        saved.append(OUTPUT_DIR / "price_vs_recovery.csv")
+        unmatched = len(prices) - len(cmp_)
+        if unmatched:
+            print(f"  {unmatched} price row(s) did not match an instrument name in capital_structure.csv")
+    else:
+        print(f"\nPRICES: {prices_path.relative_to(ROOT)} not found, so the price vs recovery comparison is skipped.")
+        print("  Add it with columns ticker,instrument,price,price_date,source (instrument names as in capital_structure.csv).")
+
+    print("\nSaved:\n  " + "\n  ".join(str(p) for p in saved))
+    return 0
+
+
+def recovery_shares_outstanding(cache, cik: int) -> float:
+    """Latest dei:EntityCommonStockSharesOutstanding (10-K/10-Q cover page) from cached companyfacts."""
+    import json
+    from lcm import xbrl
+    cf = json.loads((cache / f"companyfacts_{cik:010d}.json").read_text())
+    facts = xbrl.facts_for(cf, "EntityCommonStockSharesOutstanding", taxonomy="dei", unit="shares")
+    if not facts:
+        raise RuntimeError(f"no shares outstanding tagged for CIK {cik}")
+    return facts[-1].val
+
+
 def run_issuers(refresh: bool, only: list[str] | None) -> int:
     cfg = load_config()
     ua = get_secret("SEC_USER_AGENT") or ""
@@ -92,11 +209,7 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     selected = [i for i in cfg["issuers"] if not only or i["ticker"] in only]
 
     overrides = issuers.load_overrides(ROOT / "data" / "inputs" / "manual_overrides.csv")
-    snaps = [
-        issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]],
-                               mat[mat["ticker"] == i["ticker"]], overrides.get(i["ticker"]))
-        for i in selected
-    ]
+    snaps = _snapshots(selected, ua, cache, refresh, cap, mat, overrides)
 
     audit = pd.DataFrame([r for s in snaps for r in issuers.audit_rows(s)])
     print("\nXBRL TAG AUDIT (which tag supplied each field; MISSING = no candidate tag had a value)")
@@ -188,10 +301,15 @@ def main(argv: list[str] | None = None) -> int:
     p2 = sub.add_parser("issuers", help="issuer credit snapshots from SEC XBRL")
     p2.add_argument("--refresh", action="store_true", help="re-download from SEC instead of cache")
     p2.add_argument("--only", nargs="*", help="tickers to include (default: all in config)")
+    p3 = sub.add_parser("recovery", help="recovery waterfall scenarios")
+    p3.add_argument("--refresh", action="store_true", help="re-download from SEC instead of cache")
+    p3.add_argument("--only", nargs="*", help="tickers to include (default: all in config)")
     args = parser.parse_args(argv)
 
     if args.command == "spreads":
         return run_spreads(args.refresh)
     if args.command == "issuers":
         return run_issuers(args.refresh, args.only)
+    if args.command == "recovery":
+        return run_recovery(args.refresh, args.only)
     return 1

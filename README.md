@@ -3,7 +3,7 @@
 A Python toolkit for monitoring US high-yield credit: spread regime monitoring, issuer
 credit snapshots from SEC filings, and recovery waterfall scenarios.
 
-> Work in progress. Milestone 1 (spread monitor) is complete. Full methodology,
+> Work in progress. Milestones 1-3 (spread monitor, issuer snapshots, recovery waterfall) are complete. Full methodology,
 > assumptions and limitations will be documented at Milestone 4.
 
 ## Setup
@@ -167,3 +167,90 @@ Bloomberg (RATC).
   9M 2026 $1,426M, 10-Q p.2); XBRL tags only the 2026 amount, so it is a manual override.
   Carrying debt ($20,637M) exceeds principal ($20,168M) because of unamortized premiums from
   exchanges.
+
+## Milestone 3: recovery waterfall
+
+```bash
+~/.venvs/credit-monitor/bin/python -m lcm recovery            # all issuers
+~/.venvs/credit-monitor/bin/python -m lcm recovery --only BHC
+```
+
+Outputs: `outputs/recovery_scenarios.csv` (EV, admin, distributable value, residual equity
+per scenario), `recovery_by_group.csv`, `recovery_by_instrument.csv`, and a chart per issuer
+(`recovery_<TICKER>.png`). The waterfall itself is a pure function in `src/lcm/waterfall.py`.
+
+### How it works
+1. **Default-scenario EBITDA** = LTM *adjusted* EBITDA (the Milestone 2 headline) × (1 − haircut).
+2. **Enterprise value** = default EBITDA × distressed EV/EBITDA multiple (floored at zero).
+3. **Administrative and other priority claims** (professional fees, priority tax and
+   employee claims) take a fixed percentage of EV off the top.
+4. **Distributable value** pays claims in order of priority. Claims with the same priority
+   share pro rata (pari passu). Anything left is residual equity.
+
+### Assumptions (all in `config.yaml` → `recovery`)
+| Assumption | Value | Why / comment |
+|---|---|---|
+| EV/EBITDA multiples | 4.0x, 5.5x, 7.0x | Low / base / high distressed valuations. |
+| Default EBITDA haircut | 20% below LTM adjusted EBITDA | Companies usually default after earnings fall; 20% is a round-number assumption, not an estimate for any issuer. |
+| Admin & priority claims | 5% of EV | Simplified proxy for bankruptcy costs and claims ahead of funded debt. |
+| Claim size | Principal only, from the debt note | No accrued/default interest, make-whole premiums or fees. |
+| Revolvers | Drawn amount at the period end | In practice revolvers are often fully drawn before default; undrawn commitments are ignored. |
+| Undersecured creditors | No deficiency claim | A secured lender's shortfall does not join the unsecured class (it would, in practice, dilute unsecured recoveries). |
+| Leases, government advances, "other" debt | General unsecured claims | Simplification; a lessor in practice recovers via the leased asset. |
+| Non-recourse debt (HGV) | Excluded | Paid only from its own pledged receivables. |
+| Base case for price comparison | 5.5x | |
+
+### Seniority used per issuer
+- **TDG:** receivables securitization (paid first, from pledged receivables) → term loans and
+  secured notes (pari passu, 10-K p.28) → leases and government advances (unsecured) →
+  senior *subordinated* notes (contractually subordinated to senior debt, 10-K p.28).
+- **FUN:** term loan and 2032 secured notes (same collateral, 10-Q p.16) → unsecured notes.
+  Simplification: the Partnership Park, Mexican and former La Ronde subsidiaries are outside
+  the collateral and guarantor group (10-Q p.16) but are not valued separately.
+- **HGV:** credit facility (term loans A/B, drawn revolver) and 6.625% 2032 notes, **pari
+  passu first lien, verified** (8-K 2024-01-17 and indenture, see Milestone 2 notes) →
+  unsecured 2029/2031 notes and other debt. Corporate EV is EBITDA-based; HGV's EBITDA
+  includes financing profit on receivables that also back the non-recourse debt, so its
+  corporate EV may be overstated (not adjusted).
+- **LUMN - consolidated waterfall (limitation):** Level 3 Financing's term loan B and first
+  lien notes → all unsecured notes (Lumen parent, Level 3, Qwest, Qwest Capital Funding) and
+  leases, pro rata. Entity-level financials are not available (Qwest deregistered in June
+  2026; Level 3 Parent has filed no 10-Q since Q3 2025), so value cannot be allocated by legal
+  entity. **An entity-level structure would change recoveries, and not in one direction:**
+  the parent's unsecured notes sit structurally behind Level 3's debt (they would recover
+  *less* than shown), while Qwest's notes have first claim on Qwest's own assets (they
+  could recover *more*). The consolidated result is therefore not a consistent over- or
+  under-estimate across notes. In addition, Lumen's LTM EBITDA still contains the fiber
+  business sold to AT&T up to Feb 2, 2026, which likely overstates the EBITDA of the business
+  that remains (understates leverage) and so may overstate recoveries.
+- **BHC - by legal entity:** three boxes (see `recovery.bhc_entity_waterfall`):
+  1. **Bausch + Lomb:** B+L's value (its own LTM adjusted EBITDA, $787M, from B+L's 10-Q
+     0001860742-26-000111) pays B+L's own term loan, revolver and secured notes, then its
+     "other" debt. B+L equity is split by shareholding: 211,963,893 shares pledged by
+     126NumberCo (10-Q p.18), 98,485,750 other BHC-held shares (310,449,643 total BHC-held,
+     B+L 10-Q p.6, less the pledged shares), and the public, using 357,497,374 shares
+     outstanding (B+L 10-Q cover, XBRL). The public's share never reaches BHC creditors.
+  2. **126NumberCo:** the value of the pledged B+L shares pays its 2030 term loan B and 10%
+     2032 notes pro rata. Any shortfall is claimed under their pari passu first-lien
+     guarantee from BHC (10-Q p.18, p.21); any surplus goes up to BHC.
+  3. **BHC RemainCo:** BHC's own value (BHC adjusted EBITDA − B+L adjusted EBITDA) plus
+     126NumberCo surplus plus the other BHC-held B+L equity pays: first lien (existing 4.875%
+     and 11% notes + 126NumberCo guarantee claims), then the 14% second lien notes, then
+     unsecured notes.
+  Simplifications: the guarantee claim is the 126NumberCo shortfall (not the full face
+  amount); intercompany claims and the guarantees from "NumberCo Note Guarantors" outside
+  the existing guarantor group are ignored; the 98.5M non-pledged B+L shares are treated as
+  unencumbered BHC value; B+L EBITDA and BHC-ex-B+L EBITDA use the same multiple.
+
+### Optional price comparison
+If `data/inputs/prices.csv` exists (columns `ticker,instrument,price,price_date,source`;
+instrument names exactly as in `capital_structure.csv`, price per 100 face), the command
+compares each price with its scenario recoveries. *Cushion* = base-case recovery − price,
+in points; within each issuer the tranche with the largest cushion looks cheapest
+relative to the others in the same capital structure. If the file is absent, the
+comparison is skipped and the output says so. No prices are included in the repo.
+
+### What the results are (and are not)
+Recoveries are **scenario estimates, not forecasts**: they show how value would be shared
+under stated multiples and haircuts, using public filings only. They depend most on the
+multiple and the EBITDA haircut, then on seniority and (for BHC) on legal-entity structure.

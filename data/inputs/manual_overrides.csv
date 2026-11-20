@@ -4,3 +4,5 @@
 ticker,field,value,units,sources,explanation
 BHC,impairments,1571,millions,"10-K 0000885590-26-000023 p.F-6 (FY2025 goodwill impairments 145); 10-Q 0000885590-26-000123 p.2 (9M 2026: 1,426; 9M 2025: —)","LTM = FY2025 145 + 9M 2026 1,426 - 9M 2025 0. XBRL tags only the 2026 year-to-date amount."
 FUN,gain_on_business_sale,-41027,thousands,"10-Q 0001999001-26-000107 p.4 (Loss on disposal group: 9M 2026 41,027; 9M 2025 —); 10-K 0001999001-26-000048 (no such line in FY2025)","LTM loss = 0 + 41,027 - 0 ($ thousands). XBRL tags only the 2026 year-to-date amount."
+BHC,blco_shares_pledged_126numberco,211963893,shares,"10-Q 0000885590-26-000123 p.18 (pledge of 211,963,893 common shares of Bausch + Lomb owned by 126NumberCo)","Bausch + Lomb Share Collateral for the 2030 Term Loan B and 10% 2032 notes."
+BHC,blco_shares_held_by_bhc_total,310449643,shares,"Bausch + Lomb 10-Q 0001860742-26-000111 p.6 (BHC directly or indirectly held 310,449,643 common shares, approximately 87%, as of October 21, 2026)","All B+L shares held by BHC entities; the excess over 126NumberCo's pledged shares is held elsewhere in BHC."

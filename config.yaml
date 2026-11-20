@@ -60,3 +60,13 @@ issuers:
     name: Bausch Health Companies
     cik: 885590
     fye: "12-31"
+
+recovery:
+  # Every assumption below is written up in the README (Milestone 3).
+  multiples: [4.0, 5.5, 7.0]          # distressed EV / EBITDA scenarios
+  base_case_multiple: 5.5             # used for the price comparison
+  admin_pct: 0.05                     # admin & other priority claims, % of EV
+  default_ebitda_haircut: 0.20        # default-scenario EBITDA = LTM adjusted EBITDA x (1 - 20%)
+  bhc_bausch_lomb:
+    cik: 1860742                      # Bausch + Lomb's own filings supply its EBITDA and share count
+    fye: "12-31"
