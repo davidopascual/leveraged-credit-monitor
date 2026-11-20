@@ -406,7 +406,11 @@ All are in `config.yaml` unless noted, and each is discussed in its section abov
   entity-level financials are not available; Bausch Health's entity model rests on the
   simplifications listed in Milestone 3; Six Flags' non-guarantor subsidiaries are not
   valued separately.
-- **XBRL is imperfect.** Companies tag differently and sometimes inconsistently. The tag audit and the debt reconciliation
-  against each debt note are the controls, not a guarantee.
+- **XBRL is imperfect.** Companies tag differently and sometimes inconsistently. Real
+  cases handled in the code, each with a test in `tests/test_fundamentals.py`: a current
+  year-to-date value with untagged prior periods (Bausch Health impairment), 10-Q maturity
+  buckets that count from the year in progress, a stale maturity schedule (HGV), and a
+  `LongTermDebt` tag that excluded the current portion (Six Flags). The tag audit and the
+  debt reconciliation against each debt note are the controls, not a guarantee.
 - **Ratings** come only from filings and one company release; ratings not disclosed in
   filings are marked "Not in filing" until checked on Bloomberg.
