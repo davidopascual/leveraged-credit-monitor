@@ -1,22 +1,74 @@
 # Leveraged Credit Monitor
 
-A Python toolkit for monitoring US high-yield credit: spread regime monitoring, issuer
-credit snapshots from SEC filings, and recovery waterfall scenarios.
+A Python toolkit for looking at US leveraged credit the way a credit desk would, using
+only public data:
 
-> Work in progress. Milestones 1-3 (spread monitor, issuer snapshots, recovery waterfall) are complete. Full methodology,
-> assumptions and limitations will be documented at Milestone 4.
+1. **Spread monitor:** daily ICE BofA option-adjusted spreads (IG, high yield, BB, B, CCC)
+   from FRED, with changes, percentiles, z-scores, flags and the CCC−BB differential.
+2. **Issuer credit snapshots:** leverage, interest coverage and maturity walls for five
+   high-yield issuers, computed from SEC EDGAR XBRL data and reconciled to the debt notes.
+3. **Recovery waterfall:** how enterprise value would be shared across each issuer's
+   capital structure under stated scenarios, including a legal-entity model for Bausch
+   Health.
+4. **Dashboard:** a single Streamlit page showing all three.
 
-## Setup
+Every number comes from FRED, SEC EDGAR (XBRL data and the filings themselves), one
+company news release (cited), or a hand-entered input file that records the filing and
+page for each number. Nothing is invented; where data is missing the output says so.
+
+## Quick start
 
 ```bash
 python3 -m venv ~/.venvs/credit-monitor
-~/.venvs/credit-monitor/bin/pip install -e ".[dev]"
-cp .env.example .env        # then add FRED_API_KEY and SEC_USER_AGENT
+~/.venvs/credit-monitor/bin/pip install -e ".[dev,dashboard]"
+cp .env.example .env        # then add FRED_API_KEY and SEC_USER_AGENT ("Your Name you@example.com")
+
+PY=~/.venvs/credit-monitor/bin/python
+$PY -m lcm spreads          # Milestone 1: spread table + charts
+$PY -m lcm issuers          # Milestone 2: issuer snapshot, tag audit, maturity walls
+$PY -m lcm recovery         # Milestone 3: coverage multiples + recovery scenarios
+~/.venvs/credit-monitor/bin/streamlit run app/dashboard.py     # Milestone 4: dashboard
+~/.venvs/credit-monitor/bin/pytest                             # tests
 ```
 
+The first run downloads and caches raw data in `data/raw/`; later runs work offline
+(`--refresh` re-downloads). Outputs (tables and charts) go to `outputs/`. Both folders are
+git-ignored and can be recreated from the code.
+
 The virtual environment lives outside the project on purpose: on macOS with iCloud
-Desktop sync, iCloud marks files inside the project as hidden, and Python 3.13 skips
+Desktop sync, iCloud marks files inside a synced folder as hidden, and Python 3.13 skips
 hidden `.pth` files, which breaks `import lcm`. Keeping the venv in `~/.venvs` avoids it.
+
+## Data sources
+
+| Source | What | Access |
+|---|---|---|
+| FRED (St. Louis Fed) | ICE BofA US OAS: `BAMLC0A0CM`, `BAMLH0A0HYM2`, `BAMLH0A1HYBB`, `BAMLH0A2HYB`, `BAMLH0A3HYC` | API key in `FRED_API_KEY` |
+| SEC EDGAR | XBRL `companyfacts` and `submissions` APIs; 10-K, 10-Q and 8-K documents | User-Agent from `SEC_USER_AGENT`, 5 requests/s |
+| Company release | Lumen news release, 2026-02-23 (S&P issuer rating) | Lumen investor relations site |
+| Hand-entered inputs | `data/inputs/capital_structure.csv`, `maturity_tables.csv`, `manual_overrides.csv` | Each row cites form, accession number and page |
+| Optional, not included | `data/inputs/prices.csv` (Bloomberg loan/bond prices) | Git-ignored licensed data |
+
+## Repository layout
+
+```
+src/lcm/      fred.py, edgar.py (clients + caching) · spreads.py, fundamentals.py, waterfall.py
+              (pure math) · xbrl.py, filing_text.py (parsing) · issuers.py, recovery.py,
+              capstructure.py (assembly) · charts.py · cli.py
+app/          dashboard.py (Streamlit)
+data/inputs/  hand-entered capital structures, maturity tables, manual overrides (all cited)
+tests/        test_spreads.py, test_fundamentals.py, test_waterfall.py, test_dashboard.py
+docs/         issuer_review_2026-11-19.txt (evidence trail for the issuer selection)
+config.yaml   every threshold, window and scenario assumption
+```
+
+## Dashboard (Milestone 4)
+
+`app/dashboard.py` is one page with three sections: the spread table with interactive
+OAS and CCC−BB charts (read from the FRED cache), the issuer rankings on adjusted and
+reported EBITDA with footnotes, caveats and maturity walls, and the coverage multiples and
+recovery scenarios per issuer. It displays the tables the CLI writes to `outputs/`, so the
+dashboard always matches the printed numbers; run the three CLI commands first.
 
 ## Milestone 1: credit spread monitor
 
@@ -313,3 +365,48 @@ comparison is skipped and the output says so.
 Recoveries are **scenario estimates, not forecasts**: they show how value would be shared
 under stated multiples and haircuts, using public filings only. They depend most on the
 multiple and the EBITDA haircut, then on seniority and (for BHC) on legal-entity structure.
+
+## Assumptions (summary)
+All are in `config.yaml` unless noted, and each is discussed in its section above.
+
+| Area | Assumption |
+|---|---|
+| Spreads | Windows in trading observations: 1d=1, 5d=5, 1m=21, 1y=252; percentile and z-score include today; flag at \|z\| > 2 or a 5-day move above 10 bp (IG), 25 bp (HY, BB, B), 50 bp (CCC). |
+| Spreads | FRED days with no value are dropped, never filled. |
+| Issuers | Latest balance sheet (10-Q or 10-K); LTM = FY + YTD − prior YTD. |
+| Issuers | Headline EBITDA = operating income + D&A + goodwill/intangible impairments − gains (+ losses) on business or disposal-group sales. Not company or credit-agreement "Adjusted EBITDA". |
+| Issuers | Total debt = carrying value of long-term debt incl. current portion + separately reported short-term borrowings; non-recourse debt excluded. |
+| Issuers | HGV operating income derived as revenues − total operating expenses. |
+| Issuers | Missing prior-period XBRL facts are never treated as zero; gaps are filled only from printed filings via `manual_overrides.csv`. |
+| Recovery | Default EBITDA = LTM adjusted EBITDA × (1 − 20%); admin & priority claims 5% of EV; multiples 4.0x / 5.5x / 7.0x, uniform across issuers and entities. |
+| Recovery | Claims = principal only; revolvers at drawn amounts; no deficiency claims; leases and "other" debt are general unsecured claims. |
+| Recovery | Lumen consolidated; BHC by legal entity with the simplifications listed above. |
+
+## Limitations
+- **Public data only.** No dealer color, no trade data, no live loan or bond prices (the
+  optional prices file is not included), and no private credit-agreement terms beyond
+  what is filed with the SEC.
+- **Spread history is short.** FRED serves about three years of these ICE BofA series
+  (2023-11-20 to 2026-11-18 in this run), so the "1-year" statistics sit inside a short,
+  mostly benign sample; a z-score also stays high for a while in a steady trend because
+  the trailing mean lags.
+- **Simplified EBITDA.** Adjusted EBITDA here makes only two adjustments. It is not the
+  company's or the lenders' definition, ignores leases (EBITDAR), and for HGV is struck
+  after securitization interest, so HGV is not comparable with the others.
+- **Point-in-time and backward-looking.** Ratios use last-twelve-months results and the
+  latest balance sheet; they do not project earnings, free cash flow or liquidity.
+  Lumen's LTM still includes a business it sold, which likely understates its leverage.
+- **Rank-based composite.** The ranking averages ranks and ignores the size of
+  differences; small gaps can change the order.
+- **Recoveries are scenario estimates, not forecasts.** They depend most on the chosen
+  multiples and EBITDA haircut, which are illustrative and uniform across very different
+  industries. Claims exclude accrued interest and fees; deficiency claims, intercompany
+  claims, litigation, pensions, trade claims and plan negotiations are ignored.
+- **Legal structure is simplified.** Lumen is modelled on a consolidated basis because
+  entity-level financials are not available; Bausch Health's entity model rests on the
+  simplifications listed in Milestone 3; Six Flags' non-guarantor subsidiaries are not
+  valued separately.
+- **XBRL is imperfect.** Companies tag differently and sometimes inconsistently. The tag audit and the debt reconciliation
+  against each debt note are the controls, not a guarantee.
+- **Ratings** come only from filings and one company release; ratings not disclosed in
+  filings are marked "Not in filing" until checked on Bloomberg.
