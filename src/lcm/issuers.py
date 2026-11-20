@@ -78,6 +78,7 @@ def build_snapshot(
     issuer: dict, user_agent: str, cache_dir: Path, refresh: bool = False,
     debt_note_rows: pd.DataFrame | None = None,
     maturity_table_rows: pd.DataFrame | None = None,
+    overrides: dict | None = None,
 ) -> Snapshot:
     cik = issuer["cik"]
     fye_month, fye_day = (int(x) for x in issuer["fye"].split("-"))
@@ -94,7 +95,7 @@ def build_snapshot(
         "impairments": fm.resolve_ltm(cf, "impairments", fm.IMPAIRMENT_TAGS, end),
         "gain_on_business_sale": fm.resolve_ltm(cf, "gain_on_business_sale", fm.GAIN_ON_BUSINESS_SALE_TAGS, end),
     }
-    apply_overrides(fields, issuer.get("ltm_overrides", {}))
+    apply_overrides(fields, overrides or {})
     debt = fm.total_debt(fields["long_term_debt"], fields["short_term_debt"])
     ebitda = fm.ebitda(fields["operating_income"].value, fields["d_and_a"].value)
     sched = fm.maturity_schedule(cf, end, fye_month, fye_day)
@@ -119,33 +120,53 @@ def build_snapshot(
 
 
 def metrics_row(s: Snapshot, capstructure_musd: float | None) -> dict[str, object]:
+    """Both EBITDA bases side by side.
+
+    adjusted (headline) = reported + goodwill/intangible impairments
+                          - gains (+ losses) on business / disposal-group sales
+    reported            = operating income + D&A
+    Adjustments that are "none reported" count as 0; PARTIAL data makes adjusted n/a.
+    """
     m = 1e6
     interest = s.fields["interest"].value
-    row = {
+    imp, gain = s.fields["impairments"], s.fields["gain_on_business_sale"]
+    imp_usd = math.nan if imp.partial else (0.0 if imp.missing else imp.value)
+    gain_usd = math.nan if gain.partial else (0.0 if gain.missing else gain.value)
+    adj = fm.ebitda_excl_one_offs(s.ebitda_usd, imp_usd, gain_usd)
+    oi = s.fields["operating_income"]
+    return {
         "ticker": s.ticker,
         "period_end": s.period_end,
         "filing": s.source_filing,
         "debt_musd": s.debt_usd / m,
-        "ltm_ebitda_musd": s.ebitda_usd / m,
         "ltm_interest_musd": interest / m,
-        "debt_to_ebitda": fm.leverage(s.debt_usd, s.ebitda_usd),
-        "ebitda_to_interest": fm.coverage(s.ebitda_usd, interest),
+        "ebitda_adj_musd": adj / m,
+        "debt_to_ebitda_adj": fm.leverage(s.debt_usd, adj),
+        "ebitda_to_interest_adj": fm.coverage(adj, interest),
+        "ebitda_reported_musd": s.ebitda_usd / m,
+        "debt_to_ebitda_reported": fm.leverage(s.debt_usd, s.ebitda_usd),
+        "ebitda_to_interest_reported": fm.coverage(s.ebitda_usd, interest),
+        "ltm_impairments_musd": imp_usd / m,
+        "ltm_gain_on_sale_musd": gain_usd / m,
+        "operating_income_basis": "derived" if oi.tag and "-" in oi.tag else ("reported" if oi.tag else "MISSING"),
         "near_term_pct": s.near_term_pct * 100 if not math.isnan(s.near_term_pct) else math.nan,
         "maturities_as_of": s.schedule.as_of,
         "maturity_source": s.maturity_source,
         "debt_note_principal_musd": capstructure_musd if capstructure_musd is not None else math.nan,
     }
-    # Supplementary, not used in ranking: EBITDA excluding impairments and gains on business sales.
-    imp, gain = s.fields["impairments"], s.fields["gain_on_business_sale"]
-    # "None reported" counts as zero; PARTIAL data (item exists, LTM not computable) does not.
-    imp_usd = math.nan if imp.partial else (0.0 if imp.missing else imp.value)
-    gain_usd = math.nan if gain.partial else (0.0 if gain.missing else gain.value)
-    adj = fm.ebitda_excl_one_offs(s.ebitda_usd, imp_usd, gain_usd)
-    row["ltm_impairments_musd"] = imp_usd / m
-    row["ltm_gain_on_sale_musd"] = gain_usd / m
-    row["ebitda_excl_one_offs_musd"] = adj / m
-    row["debt_to_ebitda_excl_one_offs"] = fm.leverage(s.debt_usd, adj)
-    return row
+
+
+def load_overrides(path: Path) -> dict[str, dict[str, dict]]:
+    """data/inputs/manual_overrides.csv -> {ticker: {field: {value_musd, source}}}."""
+    from lcm.capstructure import to_millions
+    df = pd.read_csv(path, comment="#")
+    out: dict[str, dict[str, dict]] = {}
+    for _, r in df.iterrows():
+        out.setdefault(r["ticker"], {})[r["field"]] = {
+            "value_musd": to_millions(float(r["value"]), r["units"]),
+            "source": f"{r['sources']} | {r['explanation']}",
+        }
+    return out
 
 
 def audit_rows(s: Snapshot) -> list[dict[str, object]]:
@@ -153,7 +174,8 @@ def audit_rows(s: Snapshot) -> list[dict[str, object]]:
         {
             "ticker": s.ticker,
             "field": r.field,
-            "tag": r.tag or ("MISSING (partial data)" if r.partial
+            "tag": (f"{r.tag} (derived)" if r.tag and r.field == "operating_income" and "-" in r.tag else r.tag)
+                   or ("MISSING (partial data)" if r.partial
                              else "none reported (treated as 0)" if r.field in ("short_term_debt", "impairments", "gain_on_business_sale")
                              else "MISSING"),
             "value_musd": r.value / 1e6,

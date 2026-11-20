@@ -221,6 +221,20 @@ def test_nonpositive_ebitda_ranks_worst_on_leverage():
     assert math.isnan(out.loc["A", "debt_to_ebitda"])   # still displayed as n.m.
 
 
+def test_rank_on_two_bases_with_prefix():
+    df = pd.DataFrame({
+        "ticker": ["A", "B"], "debt_musd": [100.0, 100.0], "near_term_pct": [0.0, 0.0],
+        "ebitda_adj_musd": [50.0, 10.0], "debt_to_ebitda_adj": [2.0, 10.0], "ebitda_to_interest_adj": [5.0, 1.0],
+        "ebitda_reported_musd": [-5.0, 10.0], "debt_to_ebitda_reported": [math.nan, 10.0],
+        "ebitda_to_interest_reported": [-0.5, 1.0],
+    })
+    out = fm.rank_stretched(df, "debt_to_ebitda_reported", "ebitda_to_interest_reported",
+                            "ebitda_reported_musd", prefix="reported_", sort=False)
+    out = fm.rank_stretched(out, "debt_to_ebitda_adj", "ebitda_to_interest_adj", "ebitda_adj_musd").set_index("ticker")
+    assert out.loc["B", "composite_rank"] < out.loc["A", "composite_rank"]                    # adjusted: B worst
+    assert out.loc["A", "reported_composite_rank"] < out.loc["B", "reported_composite_rank"]  # reported: A worst
+
+
 def test_rank_ignores_missing_metric():
     df = pd.DataFrame({
         "ticker": ["A", "B"],
@@ -395,3 +409,14 @@ def test_override_fills_missing_field_only():
     assert fields["impairments"].value == 1571e6 and fields["impairments"].tag == "manual (from filing)"
     with pytest.raises(ValueError):
         apply_overrides(fields, {"interest": {"value_musd": 1, "source": "x"}})
+
+
+def test_manual_overrides_file_converts_units(tmp_path):
+    from lcm.issuers import load_overrides
+    f = tmp_path / "o.csv"
+    f.write_text("ticker,field,value,units,sources,explanation\n"
+                 "FUN,gain_on_business_sale,-41027,thousands,10-Q p.4,loss\n"
+                 "BHC,impairments,1571,millions,10-K p.F-6,x\n")
+    o = load_overrides(f)
+    assert o["FUN"]["gain_on_business_sale"]["value_musd"] == pytest.approx(-41.027)
+    assert o["BHC"]["impairments"]["value_musd"] == 1571

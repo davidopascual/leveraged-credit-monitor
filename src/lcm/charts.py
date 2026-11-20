@@ -115,3 +115,46 @@ def plot_maturity_wall(ticker: str, buckets: pd.DataFrame, as_of: str, source: s
     fig.savefig(out, dpi=150)
     plt.close(fig)
     return out
+
+
+def plot_leverage_comparison(table: pd.DataFrame, out: Path) -> Path:
+    """Two panels: Debt/EBITDA and EBITDA/interest, adjusted (headline) vs reported, per issuer.
+
+    Issuers appear in headline (adjusted) rank order, most stretched at the top.
+    A ratio that is not meaningful (EBITDA <= 0) is labelled instead of drawn.
+    """
+    order = list(table["ticker"])[::-1]          # most stretched at top
+    t = table.set_index("ticker").loc[order]
+    y = range(len(order))
+    h = 0.38
+    fig, axes = plt.subplots(1, 2, figsize=(11, 0.9 * len(order) + 1.8), sharey=True)
+    panels = [
+        (axes[0], "debt_to_ebitda_adj", "debt_to_ebitda_reported", "Debt / EBITDA (higher = more levered)"),
+        (axes[1], "ebitda_to_interest_adj", "ebitda_to_interest_reported", "EBITDA / interest (lower = weaker)"),
+    ]
+    for ax, adj_col, rep_col, title in panels:
+        ax.set_axisbelow(True)
+        for offset, col, color, label in [(h / 2, adj_col, SERIES_COLORS["IG"], "Adjusted (headline)"),
+                                          (-h / 2, rep_col, SERIES_COLORS["HY"], "Reported")]:
+            vals = t[col]
+            ax.barh([yi + offset for yi in y], vals.fillna(0), height=h, color=color, label=label)
+            for yi, v in zip(y, vals):
+                txt = "n.m. (EBITDA ≤ 0)" if pd.isna(v) else f"{v:.2f}x"
+                ax.annotate(txt, xy=(0 if pd.isna(v) else max(v, 0), yi + offset), xytext=(4, 0),
+                            textcoords="offset points", va="center", fontsize=8, color=INK)
+        ax.axvline(0, color=INK_MUTED, linewidth=0.8)
+        ax.set_title(title, loc="left", fontsize=11, color=INK)
+        ax.grid(axis="x", color=GRID, linewidth=0.8)
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(colors=INK_MUTED)
+        lo, hi = ax.get_xlim()
+        ax.set_xlim(min(lo, 0), hi * 1.25)
+    axes[0].set_yticks(list(y), order)
+    axes[0].legend(frameon=False, loc="lower right", fontsize=8)
+    fig.text(0.01, 0.01, "Source: SEC EDGAR XBRL, LTM. Adjusted = + impairments − gains on business/disposal-group sales. "
+             "Order = headline (adjusted) rank.", fontsize=8, color=INK_MUTED)
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out

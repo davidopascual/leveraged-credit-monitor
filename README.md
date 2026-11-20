@@ -52,9 +52,13 @@ Everything is cached in `data/raw/sec/`.
 - **Total debt:** carrying amount of long-term debt including current maturities, plus
   short-term borrowings when reported separately (e.g. receivables securitization).
   Book value, net of unamortized discounts and issuance costs.
-- **EBITDA (LTM):** GAAP operating income + depreciation & amortization over the last twelve
-  months. Unadjusted: no add-backs. This is *not* the company's "Adjusted EBITDA" or the
-  credit-agreement definition, which are usually higher.
+- **Reported EBITDA (LTM):** GAAP operating income + depreciation & amortization over the
+  last twelve months.
+- **Adjusted EBITDA (LTM) - the headline:** reported EBITDA + goodwill/intangible impairments
+  − gains (+ losses) on the sale or write-down of a business or disposal group. Only these
+  two items, each read from a tagged line or a cited manual value. It is *not* the
+  company's "Adjusted EBITDA" or the credit-agreement definition (no add-backs for
+  restructuring, stock compensation, synergies, etc.), which are usually higher.
 - **LTM** = last fiscal year + current year-to-date − prior year-to-date (or the fiscal year
   itself when the newest filing is a 10-K).
 - **Interest (LTM):** interest expense; if a company only tags a net figure (net of interest
@@ -67,14 +71,20 @@ Everything is cached in `data/raw/sec/`.
 - **Ranking:** rank 1 = most stretched on each of leverage (highest), coverage (lowest) and
   near-term maturities (highest); composite = average rank. Debt/EBITDA is shown as n/a
   when EBITDA <= 0 but that issuer ranks *first* (worst) on leverage.
-- **Supplementary (not ranked):** EBITDA excluding goodwill/intangible impairments (added
-  back) and gains/losses on sales or write-downs of a business or disposal group (removed),
-  shown next to the headline figure because one-off items can distort GAAP operating income
-  in either direction.
+- **Which ranking is the headline, and why:** the ranking on **adjusted** EBITDA. Goodwill
+  impairments are non-cash and do not change a company's ability to pay interest, and a gain
+  on selling a business is a one-time event, not recurring earnings. On reported EBITDA
+  those items dominate: Six Flags' EBITDA is negative because of $717M of impairments,
+  Bausch Health's leverage looks like 8.6x instead of 5.2x because of a $1,571M write-down,
+  and Lumen's looks *lower* (4.7x vs 5.9x) because of a $569M gain. The ranking on reported
+  EBITDA is printed beside the headline, and `outputs/leverage_adjusted_vs_reported.png`
+  shows both.
 - **Partial data is never zero:** if an item has a current year-to-date value but the
   prior-period facts needed for LTM are not tagged, the field is MISSING (partial) and
   anything depending on it is n/a. Where the printed filing supplies the missing periods,
-  the value is entered in `config.yaml` under `ltm_overrides` with its source (FUN, BHC).
+  the value is entered in **`data/inputs/manual_overrides.csv`** with the filing and page
+  for each number (currently BHC impairments $1,571M and Six Flags' $41.0M loss on a
+  disposal group). No hand-entered number lives in code or `config.yaml`.
 - **Maturities:** in order of preference: (1) XBRL maturity tags dated within the last
   year (older schedules are stale and ignored); (2) the maturity table printed in the filing,
   entered by hand in `data/inputs/maturity_tables.csv`; (3) the debt note, as a bullet at each
@@ -107,32 +117,46 @@ Bloomberg (RATC).
   non-current amount only, so the $15.0M current portion is added back (rule in
   `fundamentals.resolve_long_term_debt`). LTM operating income is negative because of
   $717M of goodwill and trade-name impairments (10-Q p.4), so headline EBITDA is negative and
-  leverage is n/a. No XBRL maturity schedule: maturities come from the debt note (10-Q p.15);
+  reported leverage is n/a (adjusted: 7.56x). No XBRL maturity schedule: maturities come from the debt note (10-Q p.15);
   the term loan's $15.0M/yr amortization is ignored. **Simplification:** the Partnership Park,
   Mexican and former La Ronde subsidiaries are not borrowers, guarantors or collateral under
   the credit agreement and secured notes (10-Q p.16); the model treats Six Flags as a single
   borrowing group and does not separate those subsidiaries' value.
-- **HGV:** only corporate (recourse) debt is in total debt, ratios and the waterfall. The
-  $2,923M of non-recourse timeshare debt (warehouse facilities and securitizations, payable
-  solely from pledged timeshare receivables; 10-Q p.21) is shown as a separate line. This is
-  consistent with EBITDA: interest on that debt sits inside the "Financing" operating
-  expense, so it is already deducted from operating income. HGV's income statement has no
-  operating income subtotal, so operating income = total revenues − total operating expenses
-  (`Revenues − CostsAndExpenses`, an opt-in fallback for HGV only; interest is below that
-  line on p.2). Non-recourse debt is not tagged in current XBRL, so its total comes from the
-  debt note. **Assumption:** the 6.625% senior notes due 2032 are "guaranteed on a senior
-  secured basis" (p.21); the filings do not say whether they share collateral pari passu with
-  the credit facility. The model assumes they do (to be checked against the indenture).
+- **HGV (marked `*` in the output):** only corporate (recourse) debt is in total debt,
+  ratios and the waterfall. The $2,923M of non-recourse timeshare debt (warehouse facilities
+  and securitizations, payable solely from pledged timeshare receivables; 10-Q p.21) is shown
+  as a separate line. **Operating income is derived**, not reported: HGV's income statement
+  has no operating income subtotal, so operating income = total revenues − total operating
+  expenses (`Revenues − CostsAndExpenses`, an opt-in fallback for HGV only; corporate
+  interest expense sits below that line, 10-Q p.2). **Not comparable with the other
+  issuers:** total operating expenses include the "Financing" line, which "represents
+  consumer financing interest expense related to our debt securitized by gross timeshare
+  financing receivables … and Timeshare Facility" (10-K p.48); that interest was $117M of
+  the $215M financing expense in FY2025 (10-K p.55). HGV's EBITDA is therefore struck
+  *after* securitization interest, and its coverage ratio uses only corporate interest, so
+  its EBITDA, leverage and coverage are on a different basis from the other four.
+  Non-recourse debt is not tagged in current XBRL, so its total comes from the debt note.
+  **2032 secured notes - verified pari passu:** the 8-K announcing the notes (filed
+  2024-01-17, accession 0001193125-24-009277, Item 1.01) states the term loans "rank pari
+  passu in right of payment and pari passu in right of security with … the Notes" and that
+  the notes "are secured on a first-priority basis by substantially all assets … which assets
+  also secure the Company's senior secured credit facilities". The indenture (Exhibit 4.1,
+  Section 1.01) defines the "Equal Priority Intercreditor Agreement" as "the First Lien
+  Intercreditor Agreement dated January 17, 2024" between the credit agreement collateral
+  agent and the notes' collateral agent.
 - **LUMN:** the Mass Markets Fiber-to-the-Home business sold to AT&T on Feb 2, 2026 was
   *not* treated as a discontinued operation (10-Q p.14), so the LTM window (Oct 2025 - Sep
   2026) still contains its results up to the sale date. The filings do not disclose that
-  business's EBITDA, so it cannot be removed; the CLI prints a caveat. Headline EBITDA also
-  includes the $569M net gain on the sale (inside operating income, 10-Q p.5); the
-  supplementary column removes it. Debt is the consolidated total ($13,193M carrying, tag
-  `DebtAndCapitalLeaseObligations`). **Entity-level data is not available:** Qwest
-  Corporation deregistered (Form 15-12G, 2026-06-12; last 10-Q for Q1 2026) and Level 3
-  Parent, LLC has filed no 10-Q since Q3 2025, so neither has financials as of 2026-09-30.
-  The debt sits at Lumen (parent), Level 3 Financing and Qwest; the snapshot is consolidated.
+  business's EBITDA, so it cannot be removed; the CLI prints a caveat. Because LTM EBITDA
+  still includes earnings from a business Lumen no longer owns, while debt is measured after
+  the sale proceeds repaid debt, **the leverage shown likely understates Lumen's leverage on
+  its current business.** Reported EBITDA also includes the $569M net gain on the sale
+  (inside operating income, 10-Q p.5); adjusted EBITDA removes it. Debt is the consolidated
+  total ($13,193M carrying, tag `DebtAndCapitalLeaseObligations`). **Entity-level data is
+  not available:** Qwest Corporation deregistered (Form 15-12G, 2026-06-12; last 10-Q for
+  Q1 2026) and Level 3 Parent, LLC has filed no 10-Q since Q3 2025, so neither has
+  financials as of 2026-09-30. The debt sits at Lumen (parent), Level 3 Financing and Qwest;
+  the snapshot and the Milestone 3 waterfall are consolidated (see the limitation there).
 - **BHC:** consolidated, including Bausch + Lomb (consolidated by BHC). Debt sits in three
   pools (10-Q p.16-22): Bausch + Lomb's own loans and notes, secured only by B+L assets;
   126NumberCo's term loan B and 10% 2032 notes, secured by the B+L shares it holds plus a
@@ -140,6 +164,6 @@ Bloomberg (RATC).
   second-lien and unsecured notes, which 126NumberCo does not guarantee. The legal entity of
   each instrument is recorded in `data/inputs/capital_structure.csv` for the Milestone 3
   entity-level waterfall. LTM goodwill impairment is $1,571M (FY2025 $145M, 10-K p.F-6, plus
-  9M 2026 $1,426M, 10-Q p.2); XBRL tags only the 2026 amount, so it is entered as an override.
+  9M 2026 $1,426M, 10-Q p.2); XBRL tags only the 2026 amount, so it is a manual override.
   Carrying debt ($20,637M) exceeds principal ($20,168M) because of unamortized premiums from
   exchanges.

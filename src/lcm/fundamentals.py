@@ -299,22 +299,33 @@ def near_term_share(sched: MaturitySchedule, end: date, fye_month: int, fye_day:
 # Ranking
 # --------------------------------------------------------------------------
 
-def rank_stretched(df: pd.DataFrame) -> pd.DataFrame:
-    """Rank issuers from most to least stretched.
+def rank_stretched(
+    df: pd.DataFrame,
+    leverage_col: str = "debt_to_ebitda",
+    coverage_col: str = "ebitda_to_interest",
+    ebitda_col: str = "ltm_ebitda_musd",
+    prefix: str = "",
+    sort: bool = True,
+) -> pd.DataFrame:
+    """Rank issuers from most to least stretched on one EBITDA basis.
 
     Rank 1 = worst on each metric: highest leverage, lowest coverage, largest
     near-term maturity share. Composite = average of the available ranks.
     Debt/EBITDA is not meaningful when EBITDA <= 0, but such an issuer is the
     MOST stretched on leverage, so it ranks first there. Truly missing data
     (NaN EBITDA or debt) is not ranked and stays visible as NaN.
+    Call twice with different columns/prefix to rank on two EBITDA definitions.
     """
     out = df.copy()
-    lev_key = out["debt_to_ebitda"].copy()
-    if "ltm_ebitda_musd" in out:
-        nonpositive = (out["ltm_ebitda_musd"] <= 0) & out["debt_musd"].notna()
+    lev_key = out[leverage_col].copy()
+    if ebitda_col in out:
+        nonpositive = (out[ebitda_col] <= 0) & out["debt_musd"].notna()
         lev_key[nonpositive] = math.inf
-    out["rank_leverage"] = lev_key.rank(ascending=False, method="min")
-    out["rank_coverage"] = out["ebitda_to_interest"].rank(ascending=True, method="min")
-    out["rank_near_term"] = out["near_term_pct"].rank(ascending=False, method="min")
-    out["composite_rank"] = out[["rank_leverage", "rank_coverage", "rank_near_term"]].mean(axis=1)
-    return out.sort_values("composite_rank", na_position="last").reset_index(drop=True)
+    out[f"{prefix}rank_leverage"] = lev_key.rank(ascending=False, method="min")
+    out[f"{prefix}rank_coverage"] = out[coverage_col].rank(ascending=True, method="min")
+    out[f"{prefix}rank_near_term"] = out["near_term_pct"].rank(ascending=False, method="min")
+    ranks = [f"{prefix}rank_leverage", f"{prefix}rank_coverage", f"{prefix}rank_near_term"]
+    out[f"{prefix}composite_rank"] = out[ranks].mean(axis=1)
+    if sort:
+        out = out.sort_values(f"{prefix}composite_rank", na_position="last").reset_index(drop=True)
+    return out

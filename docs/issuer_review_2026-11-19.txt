@@ -1,0 +1,174 @@
+LEVERAGED CREDIT MONITOR - MILESTONE 2 ISSUER REVIEW
+Prepared 2026-11-19. Every quoted line below is copied from the cited SEC filing.
+No company-specific code has been built yet. Nothing new is committed.
+
+
+1. RATINGS: ONLY TWO OF THE SIX FILINGS DISCLOSE THEM
+------------------------------------------------------
+
+LUMN - disclosed
+  Filing: 10-Q, accession 0000018926-26-000073, filed 2026-11-04, page 58
+  As of: "the filing date of this report"
+                          Moody's    S&P    Fitch
+  Lumen Inc. secured      B3/Caa1    B+     BB
+  Lumen Inc. unsecured    Caa1       B      BB
+  Level 3 secured         Ba3        B+     BB
+  Level 3 unsecured       B3         B-     B-
+  Qwest unsecured         Caa1       B      BB
+  Footnote: Moody's Corporate Family Rating raised to B2 and Fitch Issuer
+  Default Rating raised to B in February 2026.
+
+BHC - disclosed
+  Filing: 10-Q, accession 0000885590-26-000123, filed 2026-10-29, page 71
+  As of: October 28, 2026
+  Bausch Health:  Moody's Caa2 corporate / Caa1 secured / Ca unsecured
+                  S&P B- corporate / B- secured / CCC+ unsecured
+  Bausch + Lomb:  Moody's B1 corporate; S&P B corporate / B secured;
+                  Fitch B corporate / BB secured
+
+TDG, HGV, AAL, FUN - NOT disclosed in the latest 10-K or 10-Q.
+  The README will mark these "not in filing" until added from Bloomberg RATC.
+
+Cross-check notes:
+  - Your BHC ratings match the filing.
+  - Lumen: the filing confirms Moody's B2 and Fitch B, and S&P B on the
+    unsecured debt. It does not state an S&P corporate rating, so S&P B-
+    needs to come from Bloomberg.
+
+
+2. DEBT-NOTE EVIDENCE PER COMPANY
+---------------------------------
+
+TDG (TransDigm) - CONFIRMED
+  Filing: 10-K, accession 0001260221-26-000077, fiscal year ended 2026-09-30
+  Note 10 "Debt", page F-20 ($ millions):
+    "Term loans | $12,803"
+    Ten secured note series, e.g. "6.750% secured notes due 2035 ... 3,000"
+    Five senior subordinated note series,
+      e.g. "6.375% senior subordinated notes due 2033 ... 2,650"
+  Ranking, page 28:
+    Secured notes "rank equally in right of payment with ... the senior
+    secured credit facilities."
+    Subordinated notes are "subordinated in right of payment to ... the
+    Secured Notes and borrowings under the senior secured credit facilities."
+  FLAG: TDG has subordinated notes rather than plain senior unsecured notes.
+  The waterfall needs a subordinated level beneath the unsecured one.
+
+LUMN (Lumen) - CONFIRMED, WITH TWO FLAGS
+  Filing: 10-Q above, Note 5, page 24 ($ millions):
+    "Level 3 Financing, Inc. Term Loan B-5 ... 2032 | 2,400"
+    "First Lien notes 6.875% - 7.000% 2033 - 2034 | 4,425"
+    Unsecured senior notes at Lumen (1,289), Level 3 (3,024),
+    Qwest (1,734) and Qwest Capital Funding (166)
+  FLAG 1 - The parent's term loans are gone. Term Loans A, B-1 and B-2 went
+    from $3,518M to $0 after the $5.72B sale of the consumer fiber business
+    to AT&T (closed Feb 2, 2026; page 13). Total debt fell from $17.4B to
+    $13.2B. The latest 10-K is for FY2025, before the sale, so "latest
+    annual filing" leverage would describe a company that no longer exists.
+  FLAG 2 - The debt sits at several legal entities. The only term loan is
+    at the Level 3 subsidiary, and Qwest's notes have first claim on Qwest's
+    own assets. One consolidated waterfall would get this wrong. A
+    simplified entity view is possible: Level 3, then Qwest, then the parent.
+
+HGV (Hilton Grand Vacations) - CONFIRMED
+  Filing: 10-Q, accession 0001674168-26-000108, Note 11, pages 20-22
+  ($ millions)
+    Term loans: "Term loan A due 2028 | 400", "Term loan B due 2031 | 880",
+                "Term loan B due 2033 | 850"; plus "Revolver | 490"
+    Senior notes: "Senior notes due 2032 | 900", "guaranteed on a senior
+                  secured basis" (page 21)
+                  Senior notes due 2029 (850) and 2031 (500), "guaranteed on
+                  a senior unsecured basis" (page 21)
+    Non-recourse debt, excluded as requested:
+      "Total non-recourse debt, gross | 2,923", "payable solely from the
+      timeshare financing receivables" (page 21). It will be shown as a
+      separate line, outside the waterfall.
+
+AAL (American Airlines) - RECOMMEND REJECTING
+  Filing: 10-Q, accession 0000006201-26-000065, Note 5, page 16 ($ millions)
+    It does have both: "2013 / 2014 / 2023 Term Loan Facility"
+    (960 / 1,850 / 1,078), and "7.25% senior secured notes ... 750" and
+    "5.75% senior secured notes ... 2,750".
+  Why reject:
+    - $25.6B of its $29.3B of debt is secured, each piece against its own
+      collateral: the loyalty program for the AAdvantage financing;
+      routes/slots/gates for the term loans; aircraft for $9.3B of EETCs
+      (aircraft-backed bonds) and $4.9B of equipment loans.
+    - The only unsecured debt is the government PSP promissory notes
+      ($3.7B, from the pandemic-era Payroll Support Program). There are no
+      ordinary senior unsecured bonds.
+    - Proper recoveries would need appraisals for each collateral pool,
+      which are not public. One company-wide valuation multiple cannot
+      handle that cleanly.
+
+FUN (Six Flags Entertainment) - PROPOSED REPLACEMENT, CONFIRMED
+  Filing: 10-Q, accession 0001999001-26-000107, Note 6, pages 15-16
+  ($ thousands - note the different unit)
+    "Term loan ... 1,473,703", a "senior secured term loan facility ...
+      matures on May 1, 2031"
+    "2032 senior secured notes at 6.625% ... 850,000"
+    Four unsecured note series totaling $2.6B:
+      2028 $300M, 2029 $500M, 2031 $800M, 2032 $1.0B
+  The secured notes share the loans' collateral ("substantially all of the
+  Company's assets", page 16), so the structure is textbook: one pari passu
+  secured class, then unsecured notes, all at one borrowing group.
+  Small flag: the Mexico, La Ronde and Partnership Park subsidiaries sit
+  outside the collateral.
+  No ratings in the filing. None used from memory; check on RATC.
+
+
+3. BHC: FEASIBLE, BUT ONLY AS AN ENTITY-LEVEL MODEL
+---------------------------------------------------
+The 10-Q (pages 16-22) shows three separate debt pools:
+
+  1. B+L - Bausch + Lomb's own term loan (2,788) and secured notes
+     (1,400 + 765). Secured only by B+L's assets (page 20).
+
+  2. 126NumberCo - a BHC subsidiary that owns 211,963,893 B+L shares.
+     It borrowed a 2030 term loan B (2,962) and the 10% 2032 notes (6,000).
+     That debt has a first lien on the B+L shares AND a pari passu
+     first-lien guarantee from the rest of BHC (pages 18, 21).
+
+  3. BHC RemainCo (the rest of BHC) - existing 1L notes (803 + 888),
+     14% 2L notes (352) and $4.1B of unsecured notes. These notes are NOT
+     guaranteed by 126NumberCo (pages 21-22), so they reach B+L's value only
+     through whatever equity is left in 126NumberCo.
+
+Can be modeled from EDGAR data alone:
+  - Value B+L from its own 10-K, subtract B+L's debt, and multiply what is
+    left by 126NumberCo's ownership share.
+  - That stake pays the 126NumberCo debt first.
+  - Any shortfall becomes a 1L claim on RemainCo alongside the existing 1L
+    notes, followed by 2L, then unsecured.
+More involved than the other three companies; the README would list the
+simplifications. Doing it last makes sense.
+
+
+4. DECISIONS NEEDED BEFORE ANY COMPANY-SPECIFIC CODE
+----------------------------------------------------
+  1. AAL out, FUN in?
+
+  2. Lumen: which period for its numbers? The milestone says "latest annual
+     filing", but that is the pre-sale 10-K.
+       (a) Use the 10-K as specified, plus a caveat line.
+       (b) RECOMMENDED: debt from the latest 10-Q, and EBITDA and interest
+           over the last twelve months (LTM) = 10-K full year + 2026
+           year-to-date (10-Q) - 2025 year-to-date (10-Q). Applied to all
+           companies for consistency.
+
+  3. Lumen waterfall: entity level (Level 3, then Qwest, then the parent),
+     or one consolidated waterfall with a stated simplification?
+
+
+5. HOUSEKEEPING
+---------------
+  - The .venv problem: the Desktop syncs to iCloud, which kept hiding a file
+    the virtual environment needs, and that broke "import lcm". The virtual
+    environment now lives at ~/.venvs/credit-monitor. Run commands are now:
+      ~/.venvs/credit-monitor/bin/python -m lcm spreads
+      ~/.venvs/credit-monitor/bin/pytest
+    The README is updated. All 21 tests pass in the new environment.
+  - New code, not yet committed: src/lcm/edgar.py (SEC client) and
+    src/lcm/filing_text.py (splits filings into pages so quotes can be
+    cited). They go into the Milestone 2 commit. Downloaded filings are
+    cached in data/raw/sec/, which git ignores.

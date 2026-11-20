@@ -1,0 +1,6 @@
+# Values read by hand from printed filings, used ONLY where XBRL cannot supply a complete
+# LTM figure (e.g. current year-to-date is tagged but prior periods are not).
+# field: an LTM field name used in src/lcm/issuers.py. value is positive for a gain, negative for a loss.
+ticker,field,value,units,sources,explanation
+BHC,impairments,1571,millions,"10-K 0000885590-26-000023 p.F-6 (FY2025 goodwill impairments 145); 10-Q 0000885590-26-000123 p.2 (9M 2026: 1,426; 9M 2025: —)","LTM = FY2025 145 + 9M 2026 1,426 - 9M 2025 0. XBRL tags only the 2026 year-to-date amount."
+FUN,gain_on_business_sale,-41027,thousands,"10-Q 0001999001-26-000107 p.4 (Loss on disposal group: 9M 2026 41,027; 9M 2025 —); 10-K 0001999001-26-000048 (no such line in FY2025)","LTM loss = 0 + 41,027 - 0 ($ thousands). XBRL tags only the 2026 year-to-date amount."

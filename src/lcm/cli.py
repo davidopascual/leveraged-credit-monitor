@@ -91,8 +91,10 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     mat = pd.read_csv(ROOT / "data" / "inputs" / "maturity_tables.csv", comment="#", dtype={"year": str})
     selected = [i for i in cfg["issuers"] if not only or i["ticker"] in only]
 
+    overrides = issuers.load_overrides(ROOT / "data" / "inputs" / "manual_overrides.csv")
     snaps = [
-        issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]], mat[mat["ticker"] == i["ticker"]])
+        issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]],
+                               mat[mat["ticker"] == i["ticker"]], overrides.get(i["ticker"]))
         for i in selected
     ]
 
@@ -105,24 +107,44 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     for s in snaps:
         in_csv = (cap["ticker"] == s.ticker).any()
         rows.append(issuers.metrics_row(s, capstructure.recourse_principal_musd(cap, s.ticker) if in_csv else None))
-    table = issuers.fm.rank_stretched(pd.DataFrame(rows))
+    table = pd.DataFrame(rows)
+    table = issuers.fm.rank_stretched(table, "debt_to_ebitda_reported", "ebitda_to_interest_reported",
+                                      "ebitda_reported_musd", prefix="reported_", sort=False)
+    table = issuers.fm.rank_stretched(table, "debt_to_ebitda_adj", "ebitda_to_interest_adj", "ebitda_adj_musd")
 
-    print("\nISSUER CREDIT SNAPSHOT ($ millions; EBITDA = operating income + D&A, LTM, unadjusted)")
-    show = ["composite_rank", "ticker", "period_end", "debt_musd", "ltm_ebitda_musd", "ltm_interest_musd",
-            "debt_to_ebitda", "ebitda_to_interest", "near_term_pct", "rank_leverage", "rank_coverage",
-            "rank_near_term"]
-    print(table[show].to_string(index=False, na_rep="n/a", formatters={
-        "composite_rank": "{:.1f}".format, "debt_musd": "{:,.0f}".format, "ltm_ebitda_musd": "{:,.0f}".format,
-        "ltm_interest_musd": "{:,.0f}".format, "debt_to_ebitda": "{:.2f}x".format,
-        "ebitda_to_interest": "{:.2f}x".format, "near_term_pct": "{:.1f}%".format,
-        "rank_leverage": "{:.0f}".format, "rank_coverage": "{:.0f}".format, "rank_near_term": "{:.0f}".format}))
+    footnoted = {i["ticker"] for i in selected if i.get("footnotes")}
+    table["ticker_label"] = [f"{t}*" if t in footnoted else t for t in table["ticker"]]
+    x = "{:.2f}x".format
+    m0 = "{:,.0f}".format
+    r0 = "{:.0f}".format
+    print("\nISSUER CREDIT SNAPSHOT - HEADLINE: ADJUSTED EBITDA ($ millions, LTM)")
+    print("Adjusted EBITDA = operating income + D&A + goodwill/intangible impairments - gains (+ losses) on")
+    print("business or disposal-group sales. Not the company's 'Adjusted EBITDA' (no other add-backs).")
+    print(table[["composite_rank", "ticker_label", "period_end", "debt_musd", "ebitda_adj_musd", "ltm_interest_musd",
+                 "debt_to_ebitda_adj", "ebitda_to_interest_adj", "near_term_pct", "rank_leverage", "rank_coverage",
+                 "rank_near_term"]].rename(columns={"ticker_label": "ticker"}).to_string(
+        index=False, na_rep="n/a", formatters={
+            "composite_rank": "{:.1f}".format, "debt_musd": m0, "ebitda_adj_musd": m0, "ltm_interest_musd": m0,
+            "debt_to_ebitda_adj": x, "ebitda_to_interest_adj": x, "near_term_pct": "{:.1f}%".format,
+            "rank_leverage": r0, "rank_coverage": r0, "rank_near_term": r0}))
     print("near_term_pct = share of scheduled principal due in the rest of this fiscal year plus the next two")
 
-    print("\nSUPPLEMENTARY (not used in ranking): EBITDA excl. goodwill/intangible impairments and gains on business sales")
-    print(table[["ticker", "ltm_impairments_musd", "ltm_gain_on_sale_musd", "ebitda_excl_one_offs_musd",
-                 "debt_to_ebitda_excl_one_offs", "maturity_source"]].to_string(index=False, na_rep="n/a", formatters={
-        "ltm_impairments_musd": "{:,.0f}".format, "ltm_gain_on_sale_musd": "{:,.0f}".format,
-        "ebitda_excl_one_offs_musd": "{:,.0f}".format, "debt_to_ebitda_excl_one_offs": "{:.2f}x".format}))
+    print("\nSAME ISSUERS ON REPORTED (UNADJUSTED) EBITDA = operating income + D&A, for comparison")
+    print(table[["reported_composite_rank", "ticker_label", "ebitda_reported_musd", "ltm_impairments_musd",
+                 "ltm_gain_on_sale_musd", "debt_to_ebitda_reported", "ebitda_to_interest_reported",
+                 "operating_income_basis", "maturity_source"]].rename(columns={"ticker_label": "ticker"}).to_string(
+        index=False, na_rep="n/a", formatters={
+            "reported_composite_rank": "{:.1f}".format, "ebitda_reported_musd": m0, "ltm_impairments_musd": m0,
+            "ltm_gain_on_sale_musd": m0, "debt_to_ebitda_reported": x, "ebitda_to_interest_reported": x}))
+    print("Debt/EBITDA shows n/a when EBITDA <= 0; that issuer still ranks worst on leverage.")
+
+    print("\nFOOTNOTES")
+    for i in selected:
+        for fn in i.get("footnotes", []):
+            print(f"  * {i['ticker']}: {fn}")
+    ovr = [(t, f) for t, d in overrides.items() for f in d if t in set(table["ticker"])]
+    for t, f in ovr:
+        print(f"  {t}: {f} is a manual value from the printed filing (data/inputs/manual_overrides.csv)")
 
     nonrec = cap[cap["class"] == "nonrecourse"].groupby("ticker")["principal_musd"].sum()
     for t, v in nonrec.items():
@@ -144,7 +166,8 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     OUTPUT_DIR.mkdir(exist_ok=True)
     table.to_csv(OUTPUT_DIR / "issuer_snapshot.csv", index=False)
     audit.to_csv(OUTPUT_DIR / "xbrl_tag_audit.csv", index=False)
-    saved = [OUTPUT_DIR / "issuer_snapshot.csv", OUTPUT_DIR / "xbrl_tag_audit.csv"]
+    saved = [OUTPUT_DIR / "issuer_snapshot.csv", OUTPUT_DIR / "xbrl_tag_audit.csv",
+             charts.plot_leverage_comparison(table, OUTPUT_DIR / "leverage_adjusted_vs_reported.png")]
     for s in snaps:
         mf = issuers.maturity_frame(s)
         mf.to_csv(OUTPUT_DIR / f"maturities_{s.ticker}.csv", index=False)
