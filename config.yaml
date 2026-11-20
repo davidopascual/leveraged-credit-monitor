@@ -1,0 +1,26 @@
+# Leveraged Credit Monitor configuration. Every threshold lives here, not in code.
+
+fred:
+  base_url: "https://api.stlouisfed.org/fred/series/observations"
+  # ICE BofA option-adjusted spreads. FRED reports them in PERCENT (3.25 = 325 bp).
+  series:
+    IG: BAMLC0A0CM      # US Corporate (investment grade) OAS
+    HY: BAMLH0A0HYM2    # US High Yield OAS (all ratings)
+    BB: BAMLH0A1HYBB    # US High Yield BB OAS
+    B: BAMLH0A2HYB      # US High Yield B OAS
+    CCC: BAMLH0A3HYC    # US High Yield CCC & lower OAS
+
+spreads:
+  # Windows are counted in trading observations (rows), not calendar days.
+  windows:
+    d1: 1
+    d5: 5
+    m1: 21
+    y1: 252
+  z_threshold: 2.0            # flag when |z| exceeds this
+  move_5d_threshold_bp:       # flag when |5-day change| exceeds this (bp)
+    IG: 10
+    HY: 25
+    BB: 25
+    B: 25
+    CCC: 50
