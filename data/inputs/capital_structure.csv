@@ -1,0 +1,24 @@
+# Capital structure entered by hand from each issuer's debt note. Gross principal, as printed.
+# units = the unit the filing's table uses (converted to $ millions in code).
+# priority (lower is paid first, used in Milestone 3):
+#   0 = claims on specific pledged assets ahead of everyone (e.g. receivables securitization)
+#   1 = first-lien secured   2 = second-lien secured   3 = senior unsecured   4 = subordinated
+#   nonrecourse debt is listed but excluded from the corporate waterfall
+ticker,entity,instrument,class,priority,principal,units,maturity,form,accession,page,note
+TDG,TransDigm Inc.,Trade receivable securitization facility,other,0,875,millions,,10-K,0001260221-26-000077,F-20,Short-term borrowing secured by pledged receivables; treated as paid from that collateral first
+TDG,TransDigm Inc.,Term loans,secured,1,12803,millions,,10-K,0001260221-26-000077,F-20,Senior secured credit facilities; rank equally with Secured Notes (p.28)
+TDG,TransDigm Inc.,6.750% secured notes due 2028,secured,1,269,millions,2028,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.375% secured notes due 2029,secured,1,2750,millions,2029,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.875% secured notes due 2030,secured,1,1450,millions,2030,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,7.125% secured notes due 2031,secured,1,1000,millions,2031,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.625% secured notes due 2032,secured,1,2200,millions,2032,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.000% secured notes due 2033,secured,1,1500,millions,2033,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.250% secured notes due 2034,secured,1,500,millions,2034,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.750% secured notes due 2035,secured,1,3000,millions,2035,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,4.625% senior subordinated notes due 2029,subordinated,4,1200,millions,2029,10-K,0001260221-26-000077,F-20,Subordinated to Secured Notes and credit facilities (p.28)
+TDG,TransDigm Inc.,4.875% senior subordinated notes due 2029,subordinated,4,750,millions,2029,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.375% senior subordinated notes due 2033,subordinated,4,2650,millions,2033,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.750% senior subordinated notes due 2034,subordinated,4,2000,millions,2034,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,6.125% senior subordinated notes due 2034,subordinated,4,1700,millions,2034,10-K,0001260221-26-000077,F-20,
+TDG,TransDigm Inc.,Government refundable advances,other,3,8,millions,,10-K,0001260221-26-000077,F-20,Treated as a general unsecured claim (simplification)
+TDG,TransDigm Inc.,Finance lease obligations,other,3,344,millions,,10-K,0001260221-26-000077,F-20,Treated as a general unsecured claim (simplification; lessor recovers via leased asset in practice)

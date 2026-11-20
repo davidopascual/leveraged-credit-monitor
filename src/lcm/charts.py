@@ -95,3 +95,23 @@ def plot_ccc_minus_bb(diff_pct: pd.Series, window: int, out: Path) -> Path:
     fig.savefig(out, dpi=150)
     plt.close(fig)
     return out
+
+
+def plot_maturity_wall(ticker: str, buckets: pd.DataFrame, as_of: str, source: str, out: Path) -> Path:
+    """Scheduled principal by fiscal year (bars), labelled in $bn."""
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.set_axisbelow(True)  # gridlines behind the bars
+    x = list(range(len(buckets)))
+    bn = buckets["principal_musd"] / 1000
+    ax.bar(x, bn, color=SERIES_COLORS["IG"], width=0.6)
+    for xi, v in zip(x, bn):
+        ax.annotate(f"{v:,.1f}", xy=(xi, v), xytext=(0, 3), textcoords="offset points",
+                    ha="center", fontsize=9, color=INK)
+    ax.set_xticks(x, buckets["bucket"])
+    _style(ax, f"{ticker}: debt maturity wall (scheduled principal, as of {as_of})", "$ billions")
+    ax.set_ylim(0, bn.max() * 1.15 if len(bn) else 1)
+    fig.text(0.01, 0.01, f"Source: SEC EDGAR XBRL ({source})", fontsize=8, color=INK_MUTED)
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return out

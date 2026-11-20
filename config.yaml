@@ -24,3 +24,13 @@ spreads:
     BB: 25
     B: 25
     CCC: 50
+
+# SEC EDGAR: the User-Agent comes from SEC_USER_AGENT in .env, never from this file.
+# Rate limit is in src/lcm/edgar.py (5 requests/s; the SEC limit is 10).
+
+issuers:
+  # fye = fiscal year end (MM-DD). Ratings: only what the filings disclose (see README).
+  - ticker: TDG
+    name: TransDigm Group
+    cik: 1260221
+    fye: "09-30"
