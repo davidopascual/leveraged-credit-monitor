@@ -112,6 +112,8 @@ def run_recovery(refresh: bool, only: list[str] | None) -> int:
     print("  claims = principal from data/inputs/capital_structure.csv (no accrued interest); non-recourse debt excluded")
 
     results: list[recovery.ScenarioResult] = []
+    coverage: list[dict] = []
+    factor = (1 - hc) * (1 - admin)
     for t in snaps:
         rows = cap[cap["ticker"] == t]
         if rows.empty or math.isnan(adj[t]):
@@ -129,13 +131,30 @@ def run_recovery(refresh: bool, only: list[str] | None) -> int:
             print(f"\n  BHC entity inputs: B+L LTM adjusted EBITDA {bl_adj:,.0f} (B+L {bl.source_filing}); "
                   f"BHC ex-B+L {adj[t] - bl_adj:,.0f}; B+L shares outstanding {shares_out:,.0f} -> "
                   f"126NumberCo pledged {pledged:.1%}, other BHC {other:.1%}, public {1 - pledged - other:.1%}")
+            coverage += recovery.coverage_bhc(rows, bl_adj, adj[t] - bl_adj, factor)
             for m in mults:
                 results.append(recovery.bhc_entity_waterfall(
                     recovery.default_ebitda(bl_adj, hc), recovery.default_ebitda(adj[t] - bl_adj, hc), m, admin,
                     bl_claims, nc_claims, rc_claims, pledged, other))
         else:
+            coverage += recovery.coverage_single_group(t, rows, adj[t], factor)
             for m in mults:
                 results.append(recovery.single_group_scenario(t, rows, recovery.default_ebitda(adj[t], hc), m, admin))
+
+    cov = pd.DataFrame(coverage)
+    print("\nCOVERAGE MULTIPLES - no multiple assumed (first table)")
+    print("  covered_at_x = cumulative principal through the class / LTM adjusted EBITDA: the EV/EBITDA multiple")
+    print("  at which that class and everything senior to it is fully covered.")
+    print(f"  covered_at_x_in_scenarios = same on the scenario basis (EBITDA x (1-{hc:.0%}) haircut, less {admin:.0%} admin);")
+    print("  a class recovers 100% in any scenario whose multiple is >= this number.")
+    for t in cov["ticker"].unique():
+        c = cov[cov.ticker == t].sort_values("display_order")
+        print(f"\n  {t}")
+        print(c[["group", "principal_musd", "cumulative_musd", "ebitda_musd", "covered_at_x",
+                 "covered_at_x_in_scenarios", "ebitda_basis"]].to_string(index=False, formatters={
+            "principal_musd": "{:,.0f}".format, "cumulative_musd": "{:,.0f}".format, "ebitda_musd": "{:,.0f}".format,
+            "covered_at_x": "{:.2f}x".format, "covered_at_x_in_scenarios": "{:.2f}x".format}))
+    print("\nSCENARIO RECOVERIES (4x / 5.5x / 7x)")
 
     scen = recovery.scenario_table(results)
     groups = recovery.group_table(results)
@@ -158,10 +177,11 @@ def run_recovery(refresh: bool, only: list[str] | None) -> int:
             print(f"  NOTE: {caveat[t]}")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
+    cov.to_csv(OUTPUT_DIR / "coverage_multiples.csv", index=False)
     scen.to_csv(OUTPUT_DIR / "recovery_scenarios.csv", index=False)
     groups.to_csv(OUTPUT_DIR / "recovery_by_group.csv", index=False)
     instr.to_csv(OUTPUT_DIR / "recovery_by_instrument.csv", index=False)
-    saved = [OUTPUT_DIR / f for f in ("recovery_scenarios.csv", "recovery_by_group.csv", "recovery_by_instrument.csv")]
+    saved = [OUTPUT_DIR / f for f in ("coverage_multiples.csv", "recovery_scenarios.csv", "recovery_by_group.csv", "recovery_by_instrument.csv")]
     sub = (f"Default EBITDA = LTM adjusted x (1-{hc:.0%}); admin {admin:.0%} of EV; principal claims. "
            "Source: SEC filings; scenario estimates, not forecasts.")
     for t in groups["ticker"].unique():
@@ -243,7 +263,7 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     print("near_term_pct = share of scheduled principal due in the rest of this fiscal year plus the next two")
 
     print("\nSAME ISSUERS ON REPORTED (UNADJUSTED) EBITDA = operating income + D&A, for comparison")
-    print(table[["reported_composite_rank", "ticker_label", "ebitda_reported_musd", "ltm_impairments_musd",
+    print(table.sort_values("reported_composite_rank")[["reported_composite_rank", "ticker_label", "ebitda_reported_musd", "ltm_impairments_musd",
                  "ltm_gain_on_sale_musd", "debt_to_ebitda_reported", "ebitda_to_interest_reported",
                  "operating_income_basis", "maturity_source"]].rename(columns={"ticker_label": "ticker"}).to_string(
         index=False, na_rep="n/a", formatters={

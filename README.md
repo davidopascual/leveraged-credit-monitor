@@ -90,6 +90,26 @@ Everything is cached in `data/raw/sec/`.
   entered by hand in `data/inputs/maturity_tables.csv`; (3) the debt note, as a bullet at each
   instrument's maturity year (amortization ignored). The output says which source was used.
 
+### Results (as printed by `lcm issuers`, data as of the periods in the issuer table)
+Headline ranking on adjusted EBITDA, most stretched first:
+
+| Rank | Ticker | Composite | Debt / adj. EBITDA | Adj. EBITDA / interest | Near-term maturities | Rank: leverage / coverage / near-term |
+|---|---|---|---|---|---|---|
+| 1 | FUN | 1.7 | 7.56x | 1.73x | 6.1% | 1 / 1 / 3 |
+| 2 | BHC | 2.3 | 5.20x | 2.49x | 22.2% | 4 / 2 / 1 |
+| 3 | LUMN | 3.3 | 5.85x | 2.52x | 1.8% | 3 / 3 / 4 |
+| 4 | TDG | 3.7 | 6.61x | 2.62x | 1.6% | 2 / 4 / 5 |
+| 5 | HGV* | 4.0 | 4.12x | 3.99x | 9.3% | 5 / 5 / 2 |
+
+On reported (unadjusted) EBITDA the order is FUN 1.7 (EBITDA −$109M, leverage n/a), BHC 1.7
+(8.61x), TDG 3.7 (6.61x), LUMN 4.0 (4.67x), HGV 4.0 (4.12x).
+
+How to read the composite: it averages three *ranks*, so it ignores how big the
+differences are. Lumen ranks above TransDigm on the composite even though TransDigm is
+more levered (6.61x vs 5.85x), because Lumen is slightly worse on coverage (2.52x vs
+2.62x) and near-term maturities (1.8% vs 1.6%), differences that are too small to mean
+much. Read the individual metrics, not just the composite.
+
 Every field's XBRL tag (or MISSING) is printed and saved to `outputs/xbrl_tag_audit.csv`.
 XBRL total debt is reconciled against the gross principal entered by hand from each debt
 note in `data/inputs/capital_structure.csv` (with filing and page for every row).
@@ -175,9 +195,31 @@ Bloomberg (RATC).
 ~/.venvs/credit-monitor/bin/python -m lcm recovery --only BHC
 ```
 
-Outputs: `outputs/recovery_scenarios.csv` (EV, admin, distributable value, residual equity
-per scenario), `recovery_by_group.csv`, `recovery_by_instrument.csv`, and a chart per issuer
-(`recovery_<TICKER>.png`). The waterfall itself is a pure function in `src/lcm/waterfall.py`.
+Outputs: `outputs/coverage_multiples.csv`, `recovery_scenarios.csv` (EV, admin,
+distributable value, residual equity per scenario), `recovery_by_group.csv`,
+`recovery_by_instrument.csv`, and a chart per issuer (`recovery_<TICKER>.png`). The
+waterfall itself is a pure function in `src/lcm/waterfall.py`.
+
+### First table: coverage multiples (no multiple assumed)
+For each debt class, in seniority order: **cumulative principal through that class ÷ LTM
+adjusted EBITDA**. This is the EV/EBITDA multiple at which the class, and everything senior
+to it, is fully covered. It needs no valuation assumption, so it is printed first. A second
+column restates it on the scenario basis (after the 20% EBITDA haircut and 5% admin
+claims); a class recovers 100% in any scenario whose multiple is at or above that number.
+For BHC, Bausch + Lomb classes are measured against B+L's EBITDA, and 126NumberCo / BHC
+classes against BHC-ex-B+L EBITDA with no credit for B+L equity.
+
+| Issuer | Class | Covered at (x LTM adj. EBITDA) | On scenario basis |
+|---|---|---|---|
+| TDG | Securitization / first lien / unsecured / subordinated | 0.17x / 5.01x / 5.08x / 6.66x | 0.22x / 6.60x / 6.68x / 8.76x |
+| FUN | First lien / unsecured | 3.58x / 7.59x | 4.71x / 9.98x |
+| HGV | First lien / unsecured | 2.97x / 4.17x | 3.91x / 5.49x |
+| LUMN | First lien / unsecured | 3.03x / 5.92x | 3.98x / 7.78x |
+| BHC | B+L secured / B+L other | 6.42x / 6.44x | 8.45x / 8.47x |
+| BHC | BHC first lien (incl. 126NumberCo) / second lien / unsecured | 3.35x / 3.46x / 4.75x | 4.41x / 4.55x / 6.25x |
+
+### Second: scenario recoveries
+The 4.0x / 5.5x / 7.0x scenarios follow, as described below.
 
 ### How it works
 1. **Default-scenario EBITDA** = LTM *adjusted* EBITDA (the Milestone 2 headline) × (1 − haircut).
@@ -243,12 +285,29 @@ per scenario), `recovery_by_group.csv`, `recovery_by_instrument.csv`, and a char
   unencumbered BHC value; B+L EBITDA and BHC-ex-B+L EBITDA use the same multiple.
 
 ### Optional price comparison
-If `data/inputs/prices.csv` exists (columns `ticker,instrument,price,price_date,source`;
-instrument names exactly as in `capital_structure.csv`, price per 100 face), the command
+`data/inputs/prices.csv` is **git-ignored and never committed**: the prices are licensed
+Bloomberg data. Only its format is described here. If the file exists (columns
+`ticker,instrument,price,price_date,source`; instrument names exactly as in
+`capital_structure.csv`; price per 100 face), the command
 compares each price with its scenario recoveries. *Cushion* = base-case recovery − price,
 in points; within each issuer the tranche with the largest cushion looks cheapest
 relative to the others in the same capital structure. If the file is absent, the
-comparison is skipped and the output says so. No prices are included in the repo.
+comparison is skipped and the output says so.
+
+### Caveats on the assumptions
+- **The multiples are illustrative.** 4.0x / 5.5x / 7.0x are applied uniformly to
+  companies in very different industries (aerospace parts, theme parks, timeshares,
+  telecom, pharma) that would trade at different distressed multiples. For Bausch Health
+  the same multiple is applied to Bausch + Lomb and to the rest of BHC, which would likely
+  be valued differently. The coverage-multiple table above avoids this assumption.
+- **The 20% EBITDA haircut and 5% admin claims are assumptions**, not estimates for any
+  issuer. Both are in `config.yaml`.
+- **Deficiency claims are left out.** Where the first-lien collateral is substantially all
+  assets (TDG, HGV, Lumen's Level 3 debt, BHC's guarantors), a secured lender's shortfall
+  would mostly come from the same pool anyway, so the effect is small. It matters mainly at
+  **Six Flags**, where the Partnership Park, Mexican and former La Ronde subsidiaries sit
+  outside the collateral: their value would be shared by secured lenders' deficiency claims
+  and unsecured noteholders, so the model likely overstates the unsecured recovery there.
 
 ### What the results are (and are not)
 Recoveries are **scenario estimates, not forecasts**: they show how value would be shared

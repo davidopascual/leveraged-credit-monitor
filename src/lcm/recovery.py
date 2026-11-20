@@ -195,3 +195,59 @@ def compare_prices(instruments: pd.DataFrame, prices: pd.DataFrame, base_col: st
     m["cushion_pts"] = m[base_col] - m["price"]
     m["rank_cheap_within_issuer"] = m.groupby("ticker")["cushion_pts"].rank(ascending=False, method="min")
     return m
+
+
+# --------------------------------------------------------------------------
+# Coverage multiples (no multiple assumption)
+# --------------------------------------------------------------------------
+
+def coverage_rows(ticker: str, claims: list[Claim], groups: dict[str, str], ebitda: float,
+                  scenario_factor: float, basis: str, extra_order: int = 0) -> list[dict]:
+    """Cumulative principal through each class / EBITDA, in seniority order.
+
+    covered_at_x: the EV/EBITDA multiple at which the class (and everything senior to it)
+    is fully covered, before any haircut or admin claims. No multiple is assumed.
+    covered_at_x_in_scenarios: the same on the scenario basis, i.e. divided by
+    EBITDA x scenario_factor, where scenario_factor = (1 - haircut) x (1 - admin %).
+    A class recovers 100% in any scenario whose multiple is >= this number.
+    """
+    by_group: dict[str, list] = {}
+    for c in claims:
+        g = groups[c.name]
+        e = by_group.setdefault(g, [c.priority, 0.0])
+        e[0] = min(e[0], c.priority)
+        e[1] += c.amount
+    rows, cum = [], 0.0
+    for g, (prio, amt) in sorted(by_group.items(), key=lambda kv: kv[1][0]):
+        cum += amt
+        ok = ebitda > 0
+        rows.append({
+            "ticker": ticker, "group": g, "priority": prio, "display_order": extra_order + prio,
+            "principal_musd": amt, "cumulative_musd": cum, "ebitda_basis": basis, "ebitda_musd": ebitda,
+            "covered_at_x": cum / ebitda if ok else math.nan,
+            "covered_at_x_in_scenarios": cum / (ebitda * scenario_factor) if ok else math.nan,
+        })
+    return rows
+
+
+def coverage_single_group(ticker: str, rows: pd.DataFrame, adj_ebitda: float, scenario_factor: float) -> list[dict]:
+    claims = claims_from_rows(rows)
+    groups = {c.name: PRIORITY_LABELS[c.priority] for c in claims}
+    return coverage_rows(ticker, claims, groups, adj_ebitda, scenario_factor, "LTM adjusted EBITDA")
+
+
+def coverage_bhc(rows: pd.DataFrame, bl_ebitda: float, remainco_ebitda: float, scenario_factor: float) -> list[dict]:
+    """B+L classes vs B+L EBITDA; 126NumberCo and BHC classes vs BHC ex-B+L EBITDA.
+
+    126NumberCo's debt is counted in BHC's first lien because of its pari passu
+    first-lien guarantee; no value is credited for B+L equity.
+    """
+    bl, nc, rc = split_bhc_rows(rows)
+    bl_groups = {c.name: "B+L secured" if c.priority == 1 else "B+L unsecured & other" for c in bl}
+    out = coverage_rows("BHC", bl, bl_groups, bl_ebitda, scenario_factor, "B+L LTM adjusted EBITDA", 0)
+    rc_all = rc + nc
+    rc_groups = {c.name: {1: "BHC first lien (existing 1L + 126NumberCo guarantee)", 2: "BHC second lien",
+                          3: "BHC unsecured & other"}[c.priority] for c in rc_all}
+    out += coverage_rows("BHC", rc_all, rc_groups, remainco_ebitda, scenario_factor,
+                         "BHC ex-B+L LTM adjusted EBITDA (no B+L equity credited)", 20)
+    return out

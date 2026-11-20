@@ -165,3 +165,27 @@ def test_price_comparison_ranks_cheapest_tranche_within_issuer():
     assert out.loc[("X", "TL"), "rank_cheap_within_issuer"] == 2
     assert out.loc[("Y", "TL"), "cushion_pts"] == -10
     assert len(out) == 3                                     # unmatched price row is dropped
+
+
+def test_coverage_multiples_are_cumulative_by_seniority():
+    from lcm.recovery import PRIORITY_LABELS, coverage_rows
+    claims = [Claim("TL", 1_474, 1), Claim("Secured notes", 850, 1), Claim("Unsecured", 2_600, 3)]
+    groups = {c.name: PRIORITY_LABELS[c.priority] for c in claims}
+    rows = coverage_rows("FUN", claims, groups, ebitda=649, scenario_factor=0.8 * 0.95, basis="test")
+    assert [r["group"] for r in rows] == ["First-lien secured", "Senior unsecured & other"]
+    assert rows[0]["covered_at_x"] == pytest.approx(2_324 / 649)
+    assert rows[1]["covered_at_x"] == pytest.approx(4_924 / 649)
+    assert rows[0]["covered_at_x_in_scenarios"] == pytest.approx(2_324 / (649 * 0.76))
+
+
+def test_coverage_consistent_with_scenarios():
+    # A class is fully covered in a scenario exactly when the multiple >= covered_at_x_in_scenarios.
+    from lcm.recovery import PRIORITY_LABELS, coverage_rows
+    claims = [Claim("TL", 1_474, 1), Claim("Secured notes", 850, 1), Claim("Unsecured", 2_600, 3)]
+    groups = {c.name: PRIORITY_LABELS[c.priority] for c in claims}
+    ebitda, h, a = 649, 0.20, 0.05
+    cov = coverage_rows("FUN", claims, groups, ebitda, (1 - h) * (1 - a), "test")
+    for m in (3.0, 4.0, 4.7, 5.5, 7.0, 10.0):
+        res = run_waterfall(distributable_value(ebitda * (1 - h), m, a), claims)
+        first_lien_full = all(p.recovery > 1 - 1e-9 for p in res.payouts if p.priority == 1)
+        assert first_lien_full == (m >= cov[0]["covered_at_x_in_scenarios"] - 1e-9)

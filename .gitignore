@@ -7,6 +7,9 @@
 data/raw/
 outputs/
 
+# licensed market data (Bloomberg prices) - never commit
+data/inputs/prices.csv
+
 # python
 .venv/
 __pycache__/
