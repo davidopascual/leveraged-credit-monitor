@@ -1,0 +1,9 @@
+# Maturity tables printed in filings, entered by hand. Used when the filer does not tag
+# XBRL maturity schedules. Recourse (corporate) debt only. year = fiscal year; "after" = later years.
+ticker,year,principal,units,form,accession,page,note
+HGV,2026,6,millions,10-Q,0001674168-26-000108,22,Remaining three months of 2026; Debt column (excludes non-recourse)
+HGV,2027,22,millions,10-Q,0001674168-26-000108,22,
+HGV,2028,430,millions,10-Q,0001674168-26-000108,22,
+HGV,2029,878,millions,10-Q,0001674168-26-000108,22,
+HGV,2030,515,millions,10-Q,0001674168-26-000108,22,
+HGV,after,3095,millions,10-Q,0001674168-26-000108,22,Thereafter

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 
@@ -66,6 +66,7 @@ INTEREST_TAGS = [
     Candidate("InterestIncomeExpenseNonoperatingNet", sign=-1.0, note="net of interest income"),
     Candidate("InterestIncomeExpenseNet", sign=-1.0, note="net of interest income"),
 ]
+MAX_SCHEDULE_AGE_DAYS = 370   # a maturity schedule older than ~1 year is treated as missing
 MATURITY_TAGS = {
     "remainder": "LongTermDebtMaturitiesRepaymentsOfPrincipalRemainderOfFiscalYear",
     1: "LongTermDebtMaturitiesRepaymentsOfPrincipalInNextTwelveMonths",
@@ -100,6 +101,29 @@ def resolve_instant(cf: dict, name: str, candidates: list[Candidate], end: date)
             note = f" ({c.note})" if c.note else ""
             return Resolved(name, c.sign * f.val, c.tag, f"as of {end}{note}")
     return Resolved(name, math.nan, None, f"no candidate tag has a value as of {end}")
+
+
+def resolve_operating_income(cf: dict, end: date, fallback: str | None = None) -> Resolved:
+    """Operating income (LTM). Optional, per-issuer fallback when no subtotal is reported.
+
+    fallback="revenues_minus_costs_and_expenses": LTM Revenues - LTM CostsAndExpenses.
+    Only valid for filers whose CostsAndExpenses line is total OPERATING expenses
+    (interest and other non-operating items below it); enable it per issuer in
+    config.yaml after checking the printed income statement.
+    """
+    r = resolve_ltm(cf, "operating_income", OPERATING_INCOME_TAGS, end)
+    if not r.missing or fallback is None:
+        return r
+    if fallback != "revenues_minus_costs_and_expenses":
+        raise ValueError(f"unknown operating income fallback {fallback!r}")
+    rev = resolve_ltm(cf, "revenues", [Candidate("Revenues")], end)
+    costs = resolve_ltm(cf, "costs", [Candidate("CostsAndExpenses")], end)
+    if rev.missing or costs.missing:
+        return r
+    return Resolved(
+        "operating_income", rev.value - costs.value, "Revenues - CostsAndExpenses",
+        f"{rev.detail}; derived (issuer has no operating income subtotal)",
+    )
 
 
 def resolve_long_term_debt(cf: dict, end: date) -> Resolved:
@@ -198,7 +222,10 @@ def maturity_schedule(cf: dict, end: date, fye_month: int, fye_day: int) -> Matu
     "year two" = completed FY + 2, ... "after year five" = completed FY + 6 and later.
     """
     by_tag = {k: xbrl.facts_for(cf, t) for k, t in MATURITY_TAGS.items()}
-    dates = sorted({f.end for fs in by_tag.values() for f in fs if f.start is None and f.end <= end})
+    # Only schedules from the last year count; an older one (filer stopped tagging) is stale.
+    oldest_ok = end - timedelta(days=MAX_SCHEDULE_AGE_DAYS)
+    dates = sorted({f.end for fs in by_tag.values() for f in fs
+                    if f.start is None and oldest_ok <= f.end <= end})
     if not dates:
         return MaturitySchedule(as_of=None)
     as_of = dates[-1]

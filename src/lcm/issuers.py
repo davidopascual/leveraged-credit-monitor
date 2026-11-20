@@ -33,6 +33,18 @@ def latest_period(subs: dict) -> tuple[date, dict]:
     return date.fromisoformat(best["report_date"]), best
 
 
+def schedule_from_printed_table(rows: pd.DataFrame, as_of: date) -> fm.MaturitySchedule:
+    """Maturity schedule from a maturity table printed in the filing (hand-entered)."""
+    from lcm.capstructure import to_millions
+    sched = fm.MaturitySchedule(as_of=as_of, tags_used=["printed maturity table (data/inputs/maturity_tables.csv)"])
+    last_year = max(int(y) for y in rows["year"] if str(y) != "after")
+    for _, r in rows.iterrows():
+        label = f"FY{last_year + 1}+" if str(r["year"]) == "after" else f"FY{int(r['year'])}"
+        sched.buckets[label] = sched.buckets.get(label, 0.0) + to_millions(r["principal"], r["units"]) * 1e6
+    sched.buckets = dict(sorted(sched.buckets.items(), key=lambda kv: (kv[0].endswith("+"), kv[0])))
+    return sched
+
+
 def schedule_from_debt_note(rows: pd.DataFrame, as_of: date) -> fm.MaturitySchedule:
     """Fallback maturity schedule from hand-entered debt-note rows (bullet at maturity year).
 
@@ -51,6 +63,7 @@ def schedule_from_debt_note(rows: pd.DataFrame, as_of: date) -> fm.MaturitySched
 def build_snapshot(
     issuer: dict, user_agent: str, cache_dir: Path, refresh: bool = False,
     debt_note_rows: pd.DataFrame | None = None,
+    maturity_table_rows: pd.DataFrame | None = None,
 ) -> Snapshot:
     cik = issuer["cik"]
     fye_month, fye_day = (int(x) for x in issuer["fye"].split("-"))
@@ -61,7 +74,7 @@ def build_snapshot(
     fields = {
         "long_term_debt": fm.resolve_long_term_debt(cf, end),
         "short_term_debt": fm.resolve_instant(cf, "short_term_debt", fm.SHORT_TERM_DEBT_TAGS, end),
-        "operating_income": fm.resolve_ltm(cf, "operating_income", fm.OPERATING_INCOME_TAGS, end),
+        "operating_income": fm.resolve_operating_income(cf, end, issuer.get("operating_income_fallback")),
         "d_and_a": fm.resolve_ltm(cf, "d_and_a", fm.DA_TAGS, end),
         "interest": fm.resolve_ltm(cf, "interest", fm.INTEREST_TAGS, end),
         "impairments": fm.resolve_ltm(cf, "impairments", fm.IMPAIRMENT_TAGS, end),
@@ -70,9 +83,12 @@ def build_snapshot(
     ebitda = fm.ebitda(fields["operating_income"].value, fields["d_and_a"].value)
     sched = fm.maturity_schedule(cf, end, fye_month, fye_day)
     source = "XBRL"
-    if not sched.buckets and debt_note_rows is not None and not debt_note_rows.empty:
+    if not sched.buckets and maturity_table_rows is not None and not maturity_table_rows.empty:
+        sched = schedule_from_printed_table(maturity_table_rows, end)
+        source = "printed maturity table (XBRL maturity tags missing)"
+    elif not sched.buckets and debt_note_rows is not None and not debt_note_rows.empty:
         sched = schedule_from_debt_note(debt_note_rows, end)
-        source = "debt note (XBRL maturity tags missing)"
+        source = "debt note bullets (no XBRL tags or printed table)"
     return Snapshot(
         ticker=issuer["ticker"],
         period_end=end,

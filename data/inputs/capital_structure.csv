@@ -28,3 +28,15 @@ FUN,Six Flags Entertainment Corp.,2028 senior unsecured notes at 6.500%,unsecure
 FUN,Six Flags Entertainment Corp.,2029 senior unsecured notes at 5.250%,unsecured,3,500000,thousands,2029,10-Q,0001999001-26-000107,15,
 FUN,Six Flags Entertainment Corp.,2031 senior unsecured notes at 7.250%,unsecured,3,800000,thousands,2031,10-Q,0001999001-26-000107,15,
 FUN,Six Flags Entertainment Corp.,2032 senior unsecured notes at 8.625%,unsecured,3,1000000,thousands,2032,10-Q,0001999001-26-000107,15,
+HGV,Hilton Grand Vacations Borrower LLC,Term loan A due 2028,secured,1,400,millions,2028,10-Q,0001674168-26-000108,20,Senior secured credit facility
+HGV,Hilton Grand Vacations Borrower LLC,Term loan B due 2031,secured,1,880,millions,2031,10-Q,0001674168-26-000108,20,Senior secured credit facility
+HGV,Hilton Grand Vacations Borrower LLC,Term loan B due 2033,secured,1,850,millions,2033,10-Q,0001674168-26-000108,20,Senior secured credit facility (refinanced Jul 2026)
+HGV,Hilton Grand Vacations Borrower LLC,Revolver due 2030 (drawn),secured,1,490,millions,2030,10-Q,0001674168-26-000108,20,Senior secured credit facility
+HGV,Hilton Grand Vacations Borrower LLC,6.625% Senior notes due 2032,secured,1,900,millions,2032,10-Q,0001674168-26-000108,20,"Guaranteed on a senior secured basis (p.21); pari passu with credit facility ASSUMED, not stated in 10-K/10-Q"
+HGV,Hilton Grand Vacations Borrower LLC,5.000% Senior notes due 2029,unsecured,3,850,millions,2029,10-Q,0001674168-26-000108,20,Guaranteed on a senior unsecured basis (p.21)
+HGV,Hilton Grand Vacations Borrower LLC,4.875% Senior notes due 2031,unsecured,3,500,millions,2031,10-Q,0001674168-26-000108,20,Guaranteed on a senior unsecured basis (p.21)
+HGV,Hilton Grand Vacations Inc.,Other debt,other,3,76,millions,,10-Q,0001674168-26-000108,20,Treated as a general unsecured claim (simplification)
+HGV,Timeshare SPVs,Timeshare Facility due 2029,nonrecourse,9,550,millions,2029,10-Q,0001674168-26-000108,21,Payable solely from pledged timeshare receivables; excluded from corporate waterfall
+HGV,Timeshare SPVs,Big Cedar Timeshare Facility due 2029,nonrecourse,9,25,millions,2029,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall
+HGV,Timeshare SPVs,Securitized Debt due 2035-2045,nonrecourse,9,2346,millions,2045,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall
+HGV,Timeshare SPVs,Quorum Purchase Facility due 2034,nonrecourse,9,2,millions,2034,10-Q,0001674168-26-000108,21,Non-recourse; excluded from corporate waterfall

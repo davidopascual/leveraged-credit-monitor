@@ -287,3 +287,49 @@ def test_schedule_from_debt_note_buckets_by_maturity_and_skips_nonrecourse():
     })
     s = schedule_from_debt_note(rows, date(2026, 9, 27))
     assert s.buckets == pytest.approx({"FY2028": 300e6, "FY2031": 2273.703e6, "undated": 8e6})
+
+
+def test_stale_maturity_schedule_is_ignored():
+    # Filer last tagged maturities in 2021: must not be presented as the current schedule.
+    doc = cf({f"{P}InNextTwelveMonths": [{"end": "2021-12-31", "val": 15}]})
+    s = fm.maturity_schedule(doc, date(2026, 9, 30), 12, 31)
+    assert s.as_of is None and s.buckets == {}
+
+
+def test_latest_10k_schedule_is_used_from_a_10q_date():
+    # 10-Q filer that tags maturities only in its 10-K: last year-end schedule is fine.
+    doc = cf({f"{P}InNextTwelveMonths": [{"end": "2025-12-31", "val": 10}]})
+    s = fm.maturity_schedule(doc, date(2026, 9, 30), 12, 31)
+    assert s.as_of == date(2025, 12, 31) and s.buckets == {"FY2026": 10}
+
+
+def test_operating_income_fallback_only_when_enabled():
+    doc = cf({
+        "Revenues": [{"start": "2025-10-01", "end": "2026-09-30", "val": 4604}],
+        "CostsAndExpenses": [{"start": "2025-10-01", "end": "2026-09-30", "val": 3878}],
+    })
+    off = fm.resolve_operating_income(doc, date(2026, 9, 30))
+    on = fm.resolve_operating_income(doc, date(2026, 9, 30), "revenues_minus_costs_and_expenses")
+    assert off.missing
+    assert on.value == 726 and on.tag == "Revenues - CostsAndExpenses"
+
+
+def test_reported_operating_income_beats_fallback():
+    doc = cf({
+        "OperatingIncomeLoss": [{"start": "2025-10-01", "end": "2026-09-30", "val": 700}],
+        "Revenues": [{"start": "2025-10-01", "end": "2026-09-30", "val": 4604}],
+        "CostsAndExpenses": [{"start": "2025-10-01", "end": "2026-09-30", "val": 3878}],
+    })
+    r = fm.resolve_operating_income(doc, date(2026, 9, 30), "revenues_minus_costs_and_expenses")
+    assert r.value == 700 and r.tag == "OperatingIncomeLoss"
+
+
+def test_schedule_from_printed_table_converts_units_and_labels_thereafter():
+    from lcm.issuers import schedule_from_printed_table
+    rows = pd.DataFrame({
+        "year": ["2026", "2027", "after"],
+        "principal": [6, 22, 3095],
+        "units": ["millions"] * 3,
+    })
+    s = schedule_from_printed_table(rows, date(2026, 9, 30))
+    assert s.buckets == pytest.approx({"FY2026": 6e6, "FY2027": 22e6, "FY2028+": 3095e6})

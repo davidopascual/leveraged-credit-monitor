@@ -88,9 +88,13 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     ua = get_secret("SEC_USER_AGENT") or ""
     cache = RAW_DIR / "sec"
     cap = capstructure.load(ROOT / "data" / "inputs" / "capital_structure.csv")
+    mat = pd.read_csv(ROOT / "data" / "inputs" / "maturity_tables.csv", comment="#", dtype={"year": str})
     selected = [i for i in cfg["issuers"] if not only or i["ticker"] in only]
 
-    snaps = [issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]]) for i in selected]
+    snaps = [
+        issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]], mat[mat["ticker"] == i["ticker"]])
+        for i in selected
+    ]
 
     audit = pd.DataFrame([r for s in snaps for r in issuers.audit_rows(s)])
     print("\nXBRL TAG AUDIT (which tag supplied each field; MISSING = no candidate tag had a value)")

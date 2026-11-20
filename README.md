@@ -67,9 +67,10 @@ Everything is cached in `data/raw/sec/`.
 - **Supplementary (not ranked):** EBITDA before goodwill and intangible impairments, shown
   next to the headline figure because non-cash write-downs can push GAAP operating income
   negative.
-- **Maturities:** from XBRL maturity tags; if a filer does not tag them, from the
-  hand-entered debt note (bullet at each instrument's maturity year, amortization ignored),
-  and the output says which source was used.
+- **Maturities:** in order of preference: (1) XBRL maturity tags dated within the last
+  year (older schedules are stale and ignored); (2) the maturity table printed in the filing,
+  entered by hand in `data/inputs/maturity_tables.csv`; (3) the debt note, as a bullet at each
+  instrument's maturity year (amortization ignored). The output says which source was used.
 
 Every field's XBRL tag (or MISSING) is printed and saved to `outputs/xbrl_tag_audit.csv`.
 XBRL total debt is reconciled against the gross principal entered by hand from each debt
@@ -84,6 +85,7 @@ Bloomberg (RATC).
 |---|---|---|---|
 | TDG | TransDigm Group | 10-K FY ended 2026-09-30 (0001260221-26-000077) | Not in filing |
 | FUN | Six Flags Entertainment | 10-Q quarter ended 2026-09-27 (0001999001-26-000107) | Not in filing |
+| HGV | Hilton Grand Vacations | 10-Q quarter ended 2026-09-30 (0001674168-26-000108) | Not in filing |
 
 ### Issuer-specific notes and simplifications
 - **TDG:** notes are secured (rank equally with the term loans) or senior *subordinated*
@@ -100,3 +102,14 @@ Bloomberg (RATC).
   Mexican and former La Ronde subsidiaries are not borrowers, guarantors or collateral under
   the credit agreement and secured notes (10-Q p.16); the model treats Six Flags as a single
   borrowing group and does not separate those subsidiaries' value.
+- **HGV:** only corporate (recourse) debt is in total debt, ratios and the waterfall. The
+  $2,923M of non-recourse timeshare debt (warehouse facilities and securitizations, payable
+  solely from pledged timeshare receivables; 10-Q p.21) is shown as a separate line. This is
+  consistent with EBITDA: interest on that debt sits inside the "Financing" operating
+  expense, so it is already deducted from operating income. HGV's income statement has no
+  operating income subtotal, so operating income = total revenues − total operating expenses
+  (`Revenues − CostsAndExpenses`, an opt-in fallback for HGV only; interest is below that
+  line on p.2). Non-recourse debt is not tagged in current XBRL, so its total comes from the
+  debt note. **Assumption:** the 6.625% senior notes due 2032 are "guaranteed on a senior
+  secured basis" (p.21); the filings do not say whether they share collateral pari passu with
+  the credit facility. The model assumes they do (to be checked against the indenture).

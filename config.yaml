@@ -38,3 +38,10 @@ issuers:
     name: Six Flags Entertainment
     cik: 1999001
     fye: "12-31"
+  - ticker: HGV
+    name: Hilton Grand Vacations
+    cik: 1674168
+    fye: "12-31"
+    # No operating income subtotal on HGV's income statement (10-Q p.2). "Total operating
+    # expenses" (CostsAndExpenses) excludes interest, so Revenues - CostsAndExpenses = operating income.
+    operating_income_fallback: revenues_minus_costs_and_expenses
