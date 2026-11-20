@@ -34,3 +34,7 @@ issuers:
     name: TransDigm Group
     cik: 1260221
     fye: "09-30"
+  - ticker: FUN
+    name: Six Flags Entertainment
+    cik: 1999001
+    fye: "12-31"

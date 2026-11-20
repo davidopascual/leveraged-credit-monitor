@@ -46,6 +46,11 @@ SHORT_TERM_DEBT_TAGS = [
     Candidate("ShortTermBorrowings"),
     Candidate("ShortTermBankLoansAndNotesPayable"),
 ]
+# Supplementary only (shown, never used in the headline EBITDA or the ranking).
+IMPAIRMENT_TAGS = [
+    Candidate("GoodwillAndIntangibleAssetImpairment"),
+    Candidate("GoodwillImpairmentLoss", note="goodwill only"),
+]
 OPERATING_INCOME_TAGS = [Candidate("OperatingIncomeLoss")]
 DA_TAGS = [
     Candidate("DepreciationDepletionAndAmortization"),
@@ -95,6 +100,26 @@ def resolve_instant(cf: dict, name: str, candidates: list[Candidate], end: date)
             note = f" ({c.note})" if c.note else ""
             return Resolved(name, c.sign * f.val, c.tag, f"as of {end}{note}")
     return Resolved(name, math.nan, None, f"no candidate tag has a value as of {end}")
+
+
+def resolve_long_term_debt(cf: dict, end: date) -> Resolved:
+    """Long-term debt including current maturities.
+
+    Some filers tag LongTermDebt with the NON-current amount (identical to
+    LongTermDebtNoncurrent) even though the taxonomy defines it to include the
+    current portion. When that happens and a current portion is reported, add it.
+    """
+    r = resolve_instant(cf, "long_term_debt", DEBT_TAGS, end)
+    if r.tag != "LongTermDebt":
+        return r
+    noncurrent = xbrl.instant(xbrl.facts_for(cf, "LongTermDebtNoncurrent"), end)
+    current = xbrl.instant(xbrl.facts_for(cf, "LongTermDebtCurrent"), end)
+    if noncurrent is not None and current is not None and noncurrent.val == r.value and current.val > 0:
+        return Resolved(
+            "long_term_debt", r.value + current.val, "LongTermDebt + LongTermDebtCurrent",
+            f"as of {end} (filer's LongTermDebt equals LongTermDebtNoncurrent, so current portion added)",
+        )
+    return r
 
 
 def resolve_ltm(cf: dict, name: str, candidates: list[Candidate], end: date) -> Resolved:
@@ -217,10 +242,16 @@ def rank_stretched(df: pd.DataFrame) -> pd.DataFrame:
 
     Rank 1 = worst on each metric: highest leverage, lowest coverage, largest
     near-term maturity share. Composite = average of the available ranks.
-    Missing metrics are not ranked (and are visible as NaN in the table).
+    Debt/EBITDA is not meaningful when EBITDA <= 0, but such an issuer is the
+    MOST stretched on leverage, so it ranks first there. Truly missing data
+    (NaN EBITDA or debt) is not ranked and stays visible as NaN.
     """
     out = df.copy()
-    out["rank_leverage"] = out["debt_to_ebitda"].rank(ascending=False, method="min")
+    lev_key = out["debt_to_ebitda"].copy()
+    if "ltm_ebitda_musd" in out:
+        nonpositive = (out["ltm_ebitda_musd"] <= 0) & out["debt_musd"].notna()
+        lev_key[nonpositive] = math.inf
+    out["rank_leverage"] = lev_key.rank(ascending=False, method="min")
     out["rank_coverage"] = out["ebitda_to_interest"].rank(ascending=True, method="min")
     out["rank_near_term"] = out["near_term_pct"].rank(ascending=False, method="min")
     out["composite_rank"] = out[["rank_leverage", "rank_coverage", "rank_near_term"]].mean(axis=1)

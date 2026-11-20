@@ -90,7 +90,7 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
     cap = capstructure.load(ROOT / "data" / "inputs" / "capital_structure.csv")
     selected = [i for i in cfg["issuers"] if not only or i["ticker"] in only]
 
-    snaps = [issuers.build_snapshot(i, ua, cache, refresh) for i in selected]
+    snaps = [issuers.build_snapshot(i, ua, cache, refresh, cap[cap["ticker"] == i["ticker"]]) for i in selected]
 
     audit = pd.DataFrame([r for s in snaps for r in issuers.audit_rows(s)])
     print("\nXBRL TAG AUDIT (which tag supplied each field; MISSING = no candidate tag had a value)")
@@ -113,6 +113,12 @@ def run_issuers(refresh: bool, only: list[str] | None) -> int:
         "ebitda_to_interest": "{:.2f}x".format, "near_term_pct": "{:.1f}%".format,
         "rank_leverage": "{:.0f}".format, "rank_coverage": "{:.0f}".format, "rank_near_term": "{:.0f}".format}))
     print("near_term_pct = share of scheduled principal due by the end of the next fiscal year after the current one")
+
+    print("\nSUPPLEMENTARY (not used in ranking): EBITDA before goodwill & intangible impairments")
+    print(table[["ticker", "ltm_impairments_musd", "ebitda_pre_impairment_musd", "debt_to_ebitda_pre_impairment",
+                 "maturity_source"]].to_string(index=False, na_rep="n/a", formatters={
+        "ltm_impairments_musd": "{:,.0f}".format, "ebitda_pre_impairment_musd": "{:,.0f}".format,
+        "debt_to_ebitda_pre_impairment": "{:.2f}x".format}))
 
     print("\nDEBT RECONCILIATION: XBRL total debt (carrying) vs debt-note gross principal (data/inputs)")
     for r in rows:

@@ -23,6 +23,7 @@ class Snapshot:
     ebitda_usd: float
     schedule: fm.MaturitySchedule
     near_term_pct: float
+    maturity_source: str
 
 
 def latest_period(subs: dict) -> tuple[date, dict]:
@@ -32,7 +33,25 @@ def latest_period(subs: dict) -> tuple[date, dict]:
     return date.fromisoformat(best["report_date"]), best
 
 
-def build_snapshot(issuer: dict, user_agent: str, cache_dir: Path, refresh: bool = False) -> Snapshot:
+def schedule_from_debt_note(rows: pd.DataFrame, as_of: date) -> fm.MaturitySchedule:
+    """Fallback maturity schedule from hand-entered debt-note rows (bullet at maturity year).
+
+    Used only when the filer tags no XBRL maturity schedule. Ignores scheduled
+    amortization; rows without a maturity year go in an "undated" bucket.
+    Non-recourse debt is excluded.
+    """
+    sched = fm.MaturitySchedule(as_of=as_of, tags_used=["debt note (data/inputs/capital_structure.csv)"])
+    for _, r in rows[rows["class"] != "nonrecourse"].iterrows():
+        label = f"FY{int(r['maturity'])}" if pd.notna(r["maturity"]) else "undated"
+        sched.buckets[label] = sched.buckets.get(label, 0.0) + r["principal_musd"] * 1e6
+    sched.buckets = dict(sorted(sched.buckets.items(), key=lambda kv: (kv[0] == "undated", kv[0])))
+    return sched
+
+
+def build_snapshot(
+    issuer: dict, user_agent: str, cache_dir: Path, refresh: bool = False,
+    debt_note_rows: pd.DataFrame | None = None,
+) -> Snapshot:
     cik = issuer["cik"]
     fye_month, fye_day = (int(x) for x in issuer["fye"].split("-"))
     subs = edgar.submissions(cik, user_agent, cache_dir, refresh)
@@ -40,15 +59,20 @@ def build_snapshot(issuer: dict, user_agent: str, cache_dir: Path, refresh: bool
     end, filing = latest_period(subs)
 
     fields = {
-        "long_term_debt": fm.resolve_instant(cf, "long_term_debt", fm.DEBT_TAGS, end),
+        "long_term_debt": fm.resolve_long_term_debt(cf, end),
         "short_term_debt": fm.resolve_instant(cf, "short_term_debt", fm.SHORT_TERM_DEBT_TAGS, end),
         "operating_income": fm.resolve_ltm(cf, "operating_income", fm.OPERATING_INCOME_TAGS, end),
         "d_and_a": fm.resolve_ltm(cf, "d_and_a", fm.DA_TAGS, end),
         "interest": fm.resolve_ltm(cf, "interest", fm.INTEREST_TAGS, end),
+        "impairments": fm.resolve_ltm(cf, "impairments", fm.IMPAIRMENT_TAGS, end),
     }
     debt = fm.total_debt(fields["long_term_debt"], fields["short_term_debt"])
     ebitda = fm.ebitda(fields["operating_income"].value, fields["d_and_a"].value)
     sched = fm.maturity_schedule(cf, end, fye_month, fye_day)
+    source = "XBRL"
+    if not sched.buckets and debt_note_rows is not None and not debt_note_rows.empty:
+        sched = schedule_from_debt_note(debt_note_rows, end)
+        source = "debt note (XBRL maturity tags missing)"
     return Snapshot(
         ticker=issuer["ticker"],
         period_end=end,
@@ -58,6 +82,7 @@ def build_snapshot(issuer: dict, user_agent: str, cache_dir: Path, refresh: bool
         ebitda_usd=ebitda,
         schedule=sched,
         near_term_pct=fm.near_term_share(sched, end, fye_month, fye_day),
+        maturity_source=source,
     )
 
 
@@ -75,8 +100,16 @@ def metrics_row(s: Snapshot, capstructure_musd: float | None) -> dict[str, objec
         "ebitda_to_interest": fm.coverage(s.ebitda_usd, interest),
         "near_term_pct": s.near_term_pct * 100 if not math.isnan(s.near_term_pct) else math.nan,
         "maturities_as_of": s.schedule.as_of,
+        "maturity_source": s.maturity_source,
         "debt_note_principal_musd": capstructure_musd if capstructure_musd is not None else math.nan,
     }
+    # Supplementary, not used in ranking: EBITDA before goodwill/intangible impairments.
+    imp = s.fields["impairments"]
+    imp_usd = 0.0 if imp.missing else imp.value
+    pre = s.ebitda_usd + imp_usd
+    row["ltm_impairments_musd"] = imp_usd / m
+    row["ebitda_pre_impairment_musd"] = pre / m
+    row["debt_to_ebitda_pre_impairment"] = fm.leverage(s.debt_usd, pre)
     return row
 
 
@@ -85,7 +118,7 @@ def audit_rows(s: Snapshot) -> list[dict[str, object]]:
         {
             "ticker": s.ticker,
             "field": r.field,
-            "tag": r.tag or ("none reported (treated as 0)" if r.field == "short_term_debt" else "MISSING"),
+            "tag": r.tag or ("none reported (treated as 0)" if r.field in ("short_term_debt", "impairments") else "MISSING"),
             "value_musd": r.value / 1e6,
             "detail": r.detail,
         }
@@ -96,7 +129,8 @@ def audit_rows(s: Snapshot) -> list[dict[str, object]]:
         "field": "maturities",
         "tag": ", ".join(t.replace("LongTermDebtMaturitiesRepaymentsOfPrincipal", "…") for t in s.schedule.tags_used) or "MISSING",
         "value_musd": s.schedule.total / 1e6,
-        "detail": f"as of {s.schedule.as_of}" if s.schedule.as_of else "no maturity tags found",
+        "detail": (f"as of {s.schedule.as_of}; source: {s.maturity_source}" if s.schedule.as_of
+                   else "no maturity tags found and no debt-note rows"),
     })
     return rows
 

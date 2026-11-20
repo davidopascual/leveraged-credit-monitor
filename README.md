@@ -62,7 +62,14 @@ Everything is cached in `data/raw/sec/`.
 - **Near-term maturities:** share of scheduled principal due by the end of the next fiscal
   year after the current one.
 - **Ranking:** rank 1 = most stretched on each of leverage (highest), coverage (lowest) and
-  near-term maturities (highest); composite = average rank.
+  near-term maturities (highest); composite = average rank. Debt/EBITDA is shown as n/a
+  when EBITDA <= 0 but that issuer ranks *first* (worst) on leverage.
+- **Supplementary (not ranked):** EBITDA before goodwill and intangible impairments, shown
+  next to the headline figure because non-cash write-downs can push GAAP operating income
+  negative.
+- **Maturities:** from XBRL maturity tags; if a filer does not tag them, from the
+  hand-entered debt note (bullet at each instrument's maturity year, amortization ignored),
+  and the output says which source was used.
 
 Every field's XBRL tag (or MISSING) is printed and saved to `outputs/xbrl_tag_audit.csv`.
 XBRL total debt is reconciled against the gross principal entered by hand from each debt
@@ -76,9 +83,20 @@ Bloomberg (RATC).
 | Ticker | Company | Latest data used | Ratings |
 |---|---|---|---|
 | TDG | TransDigm Group | 10-K FY ended 2026-09-30 (0001260221-26-000077) | Not in filing |
+| FUN | Six Flags Entertainment | 10-Q quarter ended 2026-09-27 (0001999001-26-000107) | Not in filing |
 
 ### Issuer-specific notes and simplifications
 - **TDG:** notes are secured (rank equally with the term loans) or senior *subordinated*
   (10-K p.28). Interest is tagged only as "interest expense, net". The XBRL maturity schedule
   covers long-term debt only; the $875M receivables securitization and $344M finance leases
   are not in it.
+- **FUN:** debt tables are in **$ thousands** (others use $ millions); amounts are converted
+  in `capstructure.to_millions` and tested. The filer tags `LongTermDebt` with the
+  non-current amount only, so the $15.0M current portion is added back (rule in
+  `fundamentals.resolve_long_term_debt`). LTM operating income is negative because of
+  $717M of goodwill and trade-name impairments (10-Q p.4), so headline EBITDA is negative and
+  leverage is n/a. No XBRL maturity schedule: maturities come from the debt note (10-Q p.15);
+  the term loan's $15.0M/yr amortization is ignored. **Simplification:** the Partnership Park,
+  Mexican and former La Ronde subsidiaries are not borrowers, guarantors or collateral under
+  the credit agreement and secured notes (10-Q p.16); the model treats Six Flags as a single
+  borrowing group and does not separate those subsidiaries' value.

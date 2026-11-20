@@ -192,6 +192,20 @@ def test_rank_most_stretched_first():
     assert list(out["ticker"]) == ["B", "C", "A"]
 
 
+def test_nonpositive_ebitda_ranks_worst_on_leverage():
+    df = pd.DataFrame({
+        "ticker": ["A", "B"],
+        "debt_musd": [4906.0, 34763.0],
+        "ltm_ebitda_musd": [-109.0, 5256.0],
+        "debt_to_ebitda": [math.nan, 6.61],      # A is n.m. because EBITDA < 0
+        "ebitda_to_interest": [-0.29, 2.62],
+        "near_term_pct": [0.0, 1.6],
+    })
+    out = fm.rank_stretched(df).set_index("ticker")
+    assert out.loc["A", "rank_leverage"] == 1
+    assert math.isnan(out.loc["A", "debt_to_ebitda"])   # still displayed as n.m.
+
+
 def test_rank_ignores_missing_metric():
     df = pd.DataFrame({
         "ticker": ["A", "B"],
@@ -239,3 +253,37 @@ def test_capital_structure_rejects_unknown_class(tmp_path):
     )
     with pytest.raises(ValueError):
         capstructure.load(csv)
+
+
+# ---- long-term debt tagging quirk and debt-note maturity fallback -----------
+
+def test_long_term_debt_adds_current_portion_when_filer_tags_noncurrent_only():
+    # Six Flags pattern: LongTermDebt == LongTermDebtNoncurrent; current portion tagged separately.
+    doc = cf({
+        "LongTermDebt": [{"end": "2026-09-27", "val": 4891}],
+        "LongTermDebtNoncurrent": [{"end": "2026-09-27", "val": 4891}],
+        "LongTermDebtCurrent": [{"end": "2026-09-27", "val": 15}],
+    })
+    r = fm.resolve_long_term_debt(doc, date(2026, 9, 27))
+    assert r.value == 4906 and r.tag == "LongTermDebt + LongTermDebtCurrent"
+
+
+def test_long_term_debt_left_alone_when_it_already_includes_current():
+    doc = cf({
+        "LongTermDebt": [{"end": "2026-09-30", "val": 33890}],
+        "LongTermDebtNoncurrent": [{"end": "2026-09-30", "val": 33743}],
+        "LongTermDebtCurrent": [{"end": "2026-09-30", "val": 147}],
+    })
+    r = fm.resolve_long_term_debt(doc, date(2026, 9, 30))
+    assert r.value == 33890 and r.tag == "LongTermDebt"
+
+
+def test_schedule_from_debt_note_buckets_by_maturity_and_skips_nonrecourse():
+    from lcm.issuers import schedule_from_debt_note
+    rows = pd.DataFrame({
+        "class": ["secured", "unsecured", "unsecured", "nonrecourse", "other"],
+        "maturity": [2031, 2028, 2031, 2035, None],
+        "principal_musd": [1473.703, 300.0, 800.0, 999.0, 8.0],
+    })
+    s = schedule_from_debt_note(rows, date(2026, 9, 27))
+    assert s.buckets == pytest.approx({"FY2028": 300e6, "FY2031": 2273.703e6, "undated": 8e6})
